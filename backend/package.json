@@ -1,0 +1,16 @@
+{
+	"name": "backend",
+	"version": "1.0.0",
+	"description": "",
+	"main": "src/main.py",
+	"scripts": {
+		"uv": "uv run",
+		"db": "docker compose up -d",
+		"db down": "docker compose down",
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"packageManager": "pnpm@10.33.0"
+}

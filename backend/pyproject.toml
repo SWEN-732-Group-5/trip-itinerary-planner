@@ -8,6 +8,7 @@ dependencies = [
     "fastapi>=0.135.2",
     "pydantic>=2.12.5",
     "pymongo>=4.16.0",
+    "python-dotenv>=1.2.2",
     "uvicorn>=0.42.0",
 ]
 [tool.setuptools]
@@ -19,4 +20,5 @@ requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project.scripts]
-backend = "src.main:main"
+main = "src.main:main"
+dev = "src.main:dev"

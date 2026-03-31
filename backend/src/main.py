@@ -1,14 +1,44 @@
+import logging
 import os
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from pydantic import BaseModel
 from pymongo import AsyncMongoClient
 
 
+def config_logger(name) -> logging.Logger:
+    # Configure basic logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+    )
+    logger = logging.getLogger(name)
+    return logger
+
+
+def gen_mongodb_url():
+    username = os.getenv("MONGO_USERNAME", "admin")
+    password = os.getenv("MONGO_PASSWORD", "password")
+    host = os.getenv("MONGO_HOST", "localhost")
+    port = os.getenv("MONGO_PORT", "27017")
+    return f"mongodb://{username}:{password}@{host}:{port}"
+
+
+def get_env():
+    load_dotenv()
+    if "MONGODB_URL" in os.environ:
+        return os.environ["MONGODB_URL"]
+    return gen_mongodb_url()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.state.client = AsyncMongoClient(os.environ["MONGODB_URL"])
+    url = get_env()
+    app.state.logger = config_logger("main")
+    app.state.logger.info(f"Connecting to MongoDB at {url}")
+    app.state.client = AsyncMongoClient(url)
     app.state.db = app.state.client.trip_itinerary_planner
     app.state.bookings_collection = app.state.db.bookings
     await app.state.bookings_collection.delete_many({})
@@ -35,7 +65,9 @@ async def lifespan(app: FastAPI):
         ]
     )
     yield
-    # Cleanup code can be added here if needed
+    # Cleanup: close MongoDB connection
+    app.state.db.close()
+    app.state.client.close()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -66,10 +98,14 @@ async def get_booking_summary(user_id: str):
     ]
 
 
-def main():
+def main(reload: bool = False):
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("src.main:app", host="0.0.0.0", port=8000, reload=reload)
+
+
+def dev():
+    main(reload=True)
 
 
 if __name__ == "__main__":
