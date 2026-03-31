@@ -4,15 +4,23 @@
 	"description": "",
 	"main": "src/main.py",
 	"scripts": {
-		"uv": "uv run",
-		"dev": "uv run dev",
+		"prepare": "uv sync",
+		"uv": "uv",
+		"dev": "concurrently \"npm run dev:uv\" \"npm run dev:db\"",
+		"dev:uv": "uv run dev",
+		"dev:db": "./db.sh",
 		"main": "uv run main",
-		"db": "docker compose up -d",
-		"db down": "docker compose down",
-		"test": "echo \"Error: no test specified\" && exit 1"
+		"db": "./db.sh",
+		"db:status": "docker compose ps",
+		"db:up": "docker compose up -d",
+		"db:down": "docker compose down",
+		"test": "uv run -m pytest"
 	},
 	"keywords": [],
 	"author": "",
 	"license": "ISC",
-	"packageManager": "pnpm@10.33.0"
+	"packageManager": "pnpm@10.33.0",
+	"devDependencies": {
+		"concurrently": "^9.2.1"
+	}
 }
