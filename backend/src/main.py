@@ -12,30 +12,34 @@ async def lifespan(app: FastAPI):
     app.state.db = app.state.client.trip_itinerary_planner
     app.state.bookings_collection = app.state.db.bookings
     await app.state.bookings_collection.delete_many({})
-    await app.state.bookings_collection.insert_many([
-        {
-            "user_id": "user1",
-            "reference_number": "REF123",
-            "customer_service_number": "CSN123",
-            "provider_name": "Provider A"
-        },
-        {
-            "user_id": "user1",
-            "reference_number": "REF456",
-            "customer_service_number": "CSN456",
-            "provider_name": "Provider B"
-        },
-        {
-            "user_id": "user2",
-            "reference_number": "REF789",
-            "customer_service_number": "CSN789",
-            "provider_name": "Provider C"
-        }
-    ])
+    await app.state.bookings_collection.insert_many(
+        [
+            {
+                "user_id": "user1",
+                "reference_number": "REF123",
+                "customer_service_number": "CSN123",
+                "provider_name": "Provider A",
+            },
+            {
+                "user_id": "user1",
+                "reference_number": "REF456",
+                "customer_service_number": "CSN456",
+                "provider_name": "Provider B",
+            },
+            {
+                "user_id": "user2",
+                "reference_number": "REF789",
+                "customer_service_number": "CSN789",
+                "provider_name": "Provider C",
+            },
+        ]
+    )
     yield
     # Cleanup code can be added here if needed
 
+
 app = FastAPI(lifespan=lifespan)
+
 
 class BookingSummaryItem(BaseModel):
     booking_id: str
@@ -47,7 +51,9 @@ class BookingSummaryItem(BaseModel):
 
 @app.get("/booking-summary/{user_id}", response_model=list[BookingSummaryItem])
 async def get_booking_summary(user_id: str):
-    bookings = await app.state.bookings_collection.find({"user_id": user_id}).to_list(length=100)
+    bookings = await app.state.bookings_collection.find({"user_id": user_id}).to_list(
+        length=100
+    )
     return [
         BookingSummaryItem(
             booking_id=str(booking["_id"]),
@@ -58,3 +64,9 @@ async def get_booking_summary(user_id: str):
         )
         for booking in bookings
     ]
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)

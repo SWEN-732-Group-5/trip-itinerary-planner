@@ -1,5 +1,7 @@
 from fastapi.testclient import TestClient
-from backend.main import app
+
+from src.main import app
+
 
 def test_booking_summary_success():
     with TestClient(app) as client:
