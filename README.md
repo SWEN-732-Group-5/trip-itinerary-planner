@@ -17,7 +17,6 @@ Navigate to each subpackage directory for more details.
 Run the following options using `pnpm run <option>`
 
 options:
-- `install:all` - Install dependencies for all subpackages
 - `dev` - Run development environment for all subpackages
 - `dev:backend` - Run backend development environment
 - `dev:frontend` - Run frontend development environment
