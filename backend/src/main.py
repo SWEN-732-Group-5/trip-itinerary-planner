@@ -67,7 +67,6 @@ async def lifespan(app: FastAPI):
     yield
     # Cleanup: close MongoDB connection
     app.state.db.close()
-    app.state.client.close()
 
 
 app = FastAPI(lifespan=lifespan)

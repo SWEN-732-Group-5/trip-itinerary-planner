@@ -5,6 +5,8 @@
 	"main": "src/main.py",
 	"scripts": {
 		"uv": "uv run",
+		"dev": "uv run dev",
+		"main": "uv run main",
 		"db": "docker compose up -d",
 		"db down": "docker compose down",
 		"test": "echo \"Error: no test specified\" && exit 1"
