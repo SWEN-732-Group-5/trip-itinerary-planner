@@ -28,8 +28,5 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Install httpx
-        run: pip install httpx
-
       - name: Run all tests
         run: pnpm test
