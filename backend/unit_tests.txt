@@ -1,0 +1,4 @@
+1. https://github.com/SWEN-732-Group-5/trip-itinerary-planner/blob/main/backend/test_main.py
+2. PyTest
+3. Included in attachments
+4. As a user, I want to see a quick summary of all booking reference numbers and customer service numbers, so that I can easily call for help if a flight is delayed.
