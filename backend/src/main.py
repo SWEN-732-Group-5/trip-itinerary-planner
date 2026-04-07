@@ -1,12 +1,10 @@
 import logging
-import os
 from contextlib import asynccontextmanager
 
-from dotenv import load_dotenv
 from fastapi import FastAPI
-from pydantic import BaseModel
-from pymongo import AsyncMongoClient
 
+from src.db import get_mongodb_url, get_db_client
+from src.routes.trip_routes import trip_router
 
 def config_logger(name) -> logging.Logger:
     # Configure basic logging
@@ -18,27 +16,12 @@ def config_logger(name) -> logging.Logger:
     return logger
 
 
-def gen_mongodb_url():
-    username = os.getenv("MONGO_USERNAME", "admin")
-    password = os.getenv("MONGO_PASSWORD", "password")
-    host = os.getenv("MONGO_HOST", "localhost")
-    port = os.getenv("MONGO_PORT", "27017")
-    return f"mongodb://{username}:{password}@{host}:{port}"
-
-
-def get_env():
-    load_dotenv()
-    if "MONGODB_URL" in os.environ:
-        return os.environ["MONGODB_URL"]
-    return gen_mongodb_url()
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    url = get_env()
+    url = get_mongodb_url()
     app.state.logger = config_logger("main")
     app.state.logger.info(f"Connecting to MongoDB at {url}")
-    app.state.client = AsyncMongoClient(url)
+    app.state.client = get_db_client()
     app.state.db = app.state.client.trip_itinerary_planner
     app.state.bookings_collection = app.state.db.bookings
     await app.state.bookings_collection.delete_many({})
@@ -64,37 +47,13 @@ async def lifespan(app: FastAPI):
             },
         ]
     )
+    app.include_router(trip_router)
     yield
     # Cleanup: close MongoDB connection
     app.state.db.close()
 
 
 app = FastAPI(lifespan=lifespan)
-
-
-class BookingSummaryItem(BaseModel):
-    booking_id: str
-    user_id: str
-    reference_number: str
-    customer_service_number: str
-    provider_name: str
-
-
-@app.get("/booking-summary/{user_id}", response_model=list[BookingSummaryItem])
-async def get_booking_summary(user_id: str):
-    bookings = await app.state.bookings_collection.find({"user_id": user_id}).to_list(
-        length=100
-    )
-    return [
-        BookingSummaryItem(
-            booking_id=str(booking["_id"]),
-            user_id=booking["user_id"],
-            reference_number=booking["reference_number"],
-            customer_service_number=booking["customer_service_number"],
-            provider_name=booking["provider_name"],
-        )
-        for booking in bookings
-    ]
 
 
 def main(reload: bool = False):
