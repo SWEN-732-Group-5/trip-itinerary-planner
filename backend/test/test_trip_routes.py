@@ -233,9 +233,7 @@ def test_delete_trip_success():
 
 
 def test_create_event_success():
-    trip = MagicMock()
-    trip.events = []
-    trip.id = "trip1"
+    trip = make_trip_dict("trip1")
     trips_collection = MagicMock()
     trips_collection.find_one = AsyncMock(return_value=trip)
 
@@ -254,7 +252,9 @@ def test_create_event_success():
         "end_time": "2025-03-02T21:00:00",
         "attachments": [],
     }
-    trips_collection.update_one = AsyncMock(return_value=make_update_result({**make_trip_dict(), "events": [new_event]}))
+    trips_collection.find_one = AsyncMock(side_effect=[trip, {**trip, "events": [new_event]}])
+
+    trips_collection.update_one = AsyncMock(return_value=make_update_result(None, modified_count=1))
 
     with patch("src.db.get_db_client") as mock_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn:
         mock_client = make_mock_db_client(trips_collection)
@@ -277,6 +277,7 @@ def test_create_event_success():
                     "end_time": "2025-03-02T21:00:00",
                 },
             )
+            # print(response.json())
             assert response.status_code == 201
             data = response.json()
             assert data["events"][0]["event_name"] == "Dinner"
@@ -826,7 +827,7 @@ def test_create_event_update_fails():
                 },
             )
             assert response.status_code == 500
-            assert "Found trip trip1 but failed to update it" in response.json()["detail"]
+            assert "Found trip trip1 but failed to parse it" in response.json()["detail"]
 
 
 def test_update_event_update_fails():
