@@ -3,6 +3,8 @@ from typing import Optional
 from pydantic import BaseModel
 from datetime import datetime
 
+from src.db_types import EventType
+
 class CreateTripRequest(BaseModel):
     trip_name: str
     start_time: datetime 
@@ -18,10 +20,10 @@ class UpdateOrganizersRequest(BaseModel):
 
 class CreateEventRequest(BaseModel):
     event_name: str
-    event_type: str
+    event_type: EventType
     event_description: Optional[str]
     location_name: str
-    location_type: str
+    location_type: EventType
     location_coords: list[float]
     start_time: datetime
     end_time: datetime
