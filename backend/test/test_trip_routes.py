@@ -57,13 +57,51 @@ def make_mock_collection(fake_data: list[dict]):
     return collection
 
 
+def make_trip_dict(trip_id: str = "trip1"):
+    return {
+        "trip_id": trip_id,
+        "trip_name": "Test Trip",
+        "start_time": "2025-01-01T09:00:00",
+        "end_time": "2025-01-02T17:00:00",
+        "organizers": [],
+        "guests": [],
+        "events": [],
+        "locations": [],
+    }
+
+
+def make_update_result(raw_result, modified_count: int = 1):
+    result = MagicMock()
+    result.modified_count = modified_count
+    result.raw_result = raw_result
+    return result
+
+
+def make_delete_result(deleted_count: int = 1):
+    result = MagicMock()
+    result.deleted_count = deleted_count
+    return result
+
+
+def make_mock_db_client(trips_collection):
+    mock_client = MagicMock()
+    mock_db = MagicMock()
+    mock_db.bookings = MagicMock()
+    mock_db.bookings.delete_many = AsyncMock()
+    mock_db.bookings.insert_many = AsyncMock()
+    mock_db.trips = trips_collection
+    mock_client.trip_itinerary_planner = mock_db
+    return mock_client
+
+
 def test_booking_summary_success():
     mock_collection = make_mock_collection(FAKE_BOOKINGS)
 
     # Patch AsyncMongoClient before the app's lifespan runs
-    with patch("src.db.get_db_client") as mock_client_fn:
+    with patch("src.db.get_db_client") as mock_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn:
         mock_client = MagicMock()
-        mock_client_fn.return_value = mock_client
+        mock_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
         mock_client.trip_itinerary_planner.bookings = mock_collection
 
         from src.main import app
@@ -88,3 +126,195 @@ def test_booking_summary_success():
             assert len(data) == 1
             assert data[0]["reference_number"] == "REF789"
             assert data[0]["provider_name"] == "Provider C"
+
+
+def test_get_trip_success():
+    expected_trip = make_trip_dict("trip1")
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=expected_trip)
+
+    with patch("src.db.get_db_client") as mock_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.get("/trips/trip1")
+            assert response.status_code == 200
+            assert response.json() == expected_trip
+
+
+def test_get_trip_not_found():
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=None)
+
+    with patch("src.db.get_db_client") as mock_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.get("/trips/trip999")
+            assert response.status_code == 404
+            assert response.json()["detail"] == "Trip trip999 not found"
+
+
+def test_create_trip_success():
+    trips_collection = MagicMock()
+    trips_collection.find.return_value = MagicMock(to_list=AsyncMock(return_value=[]))
+    trips_collection.insert_one = AsyncMock()
+
+    with patch("src.db.get_db_client") as mock_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            payload = {
+                "trip_name": "Spring Break",
+                "start_time": "2025-03-01T08:00:00",
+                "end_time": "2025-03-07T20:00:00",
+            }
+            response = client.post("/trips", json=payload)
+            assert response.status_code == 201
+            data = response.json()
+            assert data["trip_id"] == "trip1"
+            assert data["trip_name"] == "Spring Break"
+            assert data["organizers"] == []
+            trips_collection.insert_one.assert_awaited_once()
+
+
+def test_update_trip_success():
+    updated_trip = make_trip_dict("trip1")
+    updated_trip["trip_name"] = "Updated Name"
+    trips_collection = MagicMock()
+    trips_collection.update_one = AsyncMock(return_value=make_update_result(updated_trip))
+
+    with patch("src.db.get_db_client") as mock_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            payload = {
+                "trip_id": "trip1",
+                "trip_name": "Updated Name",
+                "start_time": "2025-01-01T09:00:00",
+                "end_time": "2025-01-02T17:00:00",
+            }
+            response = client.put("/trips", json=payload)
+            assert response.status_code == 200
+            assert response.json()["trip_name"] == "Updated Name"
+            trips_collection.update_one.assert_awaited_once()
+
+
+def test_delete_trip_success():
+    trips_collection = MagicMock()
+    trips_collection.delete_one = AsyncMock(return_value=make_delete_result(1))
+
+    with patch("src.db.get_db_client") as mock_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.delete("/trips/trip1")
+            assert response.status_code == 204
+            trips_collection.delete_one.assert_awaited_once_with({"trip_id": "trip1"})
+
+
+def test_create_event_success():
+    trip = MagicMock()
+    trip.events = []
+    trip.id = "trip1"
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=trip)
+
+    new_event = {
+        "event_id": "event1",
+        "event_name": "Dinner",
+        "event_description": "Group dinner",
+        "event_type": "food",
+        "location": {
+            "name": "Pasta Place",
+            "location_type": "food",
+            "gps_position": [40.0, -74.0],
+        },
+        "end_location": None,
+        "start_time": "2025-03-02T19:00:00",
+        "end_time": "2025-03-02T21:00:00",
+        "attachments": [],
+    }
+    trips_collection.update_one = AsyncMock(return_value=make_update_result({**make_trip_dict(), "events": [new_event]}))
+
+    with patch("src.db.get_db_client") as mock_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.post(
+                "/trips/event",
+                json={
+                    "trip_id": "trip1",
+                    "event_name": "Dinner",
+                    "event_type": "food",
+                    "event_description": "Group dinner",
+                    "location_name": "Pasta Place",
+                    "location_type": "food",
+                    "location_coords": [40.0, -74.0],
+                    "start_time": "2025-03-02T19:00:00",
+                    "end_time": "2025-03-02T21:00:00",
+                },
+            )
+            assert response.status_code == 201
+            data = response.json()
+            assert data["events"][0]["event_name"] == "Dinner"
+            trips_collection.update_one.assert_awaited_once()
+
+
+def test_update_organizers_success():
+    trip = MagicMock()
+    trip.organizers = ["user1"]
+    trip.guests = ["user2"]
+    trip.id = "trip1"
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=trip)
+    trips_collection.update_one = AsyncMock(
+        return_value=make_update_result(
+            {
+                **make_trip_dict(),
+                "organizers": [{"user_id": "user2", "display_name": "User Two", "phone_number": ""}],
+                "guests": [{"user_id": "user1", "display_name": "User One", "phone_number": ""}],
+            }
+        )
+    )
+
+    with patch("src.db.get_db_client") as mock_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.put(
+                "/trips/organizers",
+                json={"trip_id": "trip1", "users": {"user2": True, "user1": False}},
+            )
+            assert response.status_code == 200
+            assert response.json()["organizers"][0]["user_id"] == "user2"
+            assert response.json()["guests"][0]["user_id"] == "user1"
+            trips_collection.update_one.assert_awaited_once()
