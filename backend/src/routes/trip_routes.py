@@ -55,27 +55,27 @@ async def create_trip(creation_request: CreateTripRequest):
     await db.trips.insert_one(new_trip)
     return new_trip
 
-@trip_router.put("", response_model=Trip)
-async def update_trip(update_request: UpdateTripRequest):
+@trip_router.put("/{trip_id}", response_model=Trip)
+async def update_trip(trip_id: str, update_request: UpdateTripRequest):
     db = get_db_client().trip_itinerary_planner
-    result = await db.trips.update_one({"trip_id": update_request.trip_id}, {
+    result = await db.trips.update_one({"trip_id": trip_id}, {
         "trip_name": update_request.trip_name, 
         "start_time": update_request.start_time, 
         "end_time": update_request.end_time
     })
     if result.modified_count < 1:
         raise HTTPException(
-            status_code=404, detail=f"Could not find trip {update_request.trip_id} to update"
+            status_code=404, detail=f"Could not find trip {trip_id} to update"
         )
     return result.raw_result
 
-@trip_router.put("/organizers", response_model=Trip)
-async def update_organizers(update_request: UpdateOrganizersRequest):
+@trip_router.put("/{trip_id}/organizers", response_model=Trip)
+async def update_organizers(trip_id: str, update_request: UpdateOrganizersRequest):
     db = get_db_client().trip_itinerary_planner
-    trip: Trip | None = await db.trips.find_one({"trip_id": update_request.trip_id})
+    trip: Trip | None = await db.trips.find_one({"trip_id": trip_id})
     if trip is None:
         raise HTTPException(
-            status_code=404, detail=f"Could not find trip {update_request.trip_id} to update"
+            status_code=404, detail=f"Could not find trip {trip_id} to update"
         )
     adding_organizers = set([user_id for user_id in update_request.users.keys() if update_request.users[user_id] == True])
     removing_organizers = update_request.users.keys() - adding_organizers
@@ -101,13 +101,13 @@ async def delete_trip(trip_id: str):
         )
     return None
     
-@trip_router.post("/event", response_model=Trip, status_code=201)
-async def create_event(creation_request: CreateEventRequest):
+@trip_router.post("/{trip_id}/event", response_model=Trip, status_code=201)
+async def create_event(trip_id: str, creation_request: CreateEventRequest):
     db = get_db_client().trip_itinerary_planner
-    trip = await db.trips.find_one({"trip_id": creation_request.trip_id})
+    trip = await db.trips.find_one({"trip_id": trip_id})
     if trip is None:
         raise HTTPException(
-            status_code=404, detail=f"Could not find trip {creation_request.trip_id} to add an event to"
+            status_code=404, detail=f"Could not find trip {trip_id} to add an event to"
         )
     next_id = len(trip.events) + 1
     if creation_request.event_type not in EventType:
@@ -147,32 +147,32 @@ async def create_event(creation_request: CreateEventRequest):
         )
     return result.raw_result
 
-@trip_router.put("/event", response_model=Trip)
-async def update_event(update_request: UpdateEventRequest):
+@trip_router.put("/{trip_id}/event/{event_id}", response_model=Trip)
+async def update_event(trip_id: str, event_id: str, update_request: UpdateEventRequest):
     db = get_db_client().trip_itinerary_planner
-    trip = await db.trips.find_one({"trip_id": update_request.trip_id})
+    trip = await db.trips.find_one({"trip_id": trip_id})
     if trip is None:
         raise HTTPException(
-            status_code=404, detail=f"Could not find trip {update_request.trip_id} to update"
+            status_code=404, detail=f"Could not find trip {trip_id} to update"
         )
-    matching_events = [e for e in filter(lambda event: event.event_id == update_request.event_id, trip.events)]
+    matching_events = [e for e in filter(lambda event: event['event_id'] == event_id, trip.events)]
     if len(matching_events) < 1:
         raise HTTPException(
-            status_code=404, detail=f"Could not find event {update_request.event_id} in trip {trip.id}"
+            status_code=404, detail=f"Could not find event {event_id} in trip {trip.id}"
         )
     if update_request.event_type not in EventType:
         raise HTTPException(
             status_code=400, detail=f'"{update_request.event_type}" is not a valid event type!'
         )
     updated_event = matching_events[0]
-    updated_event.event_name = update_request.event_name
-    updated_event.event_type = update_request.event_type
-    updated_event.event_description = update_request.event_description
-    updated_event.start_time = update_request.start_time
-    updated_event.end_time = update_request.end_time
+    updated_event["event_name"] = update_request.event_name
+    updated_event["event_type"] = update_request.event_type
+    updated_event["event_description"] = update_request.event_description
+    updated_event["start_time"] = update_request.start_time
+    updated_event["end_time"] = update_request.end_time
 
     result = await db.trips.update_one({"trip_id": trip.id}, {
-        "events": [updated_event if event.event_id == update_request.event_id else event for event in trip.events]
+        "events": [updated_event if event["event_id"] == event_id else event for event in trip["events"]]
     })
     if result.modified_count < 1:
         raise HTTPException(
@@ -181,18 +181,18 @@ async def update_event(update_request: UpdateEventRequest):
     return result.raw_result
     
 
-@trip_router.put("/event", response_model=Trip)
-async def update_event_location(update_request: UpdateEventLocationRequest):
+@trip_router.put("/{trip_id}/event/{event_id}/location", response_model=Trip)
+async def update_event_location(trip_id: str, event_id: str, update_request: UpdateEventLocationRequest):
     db = get_db_client().trip_itinerary_planner
-    trip = await db.trips.find_one({"trip_id": update_request.trip_id})
+    trip = await db.trips.find_one({"trip_id": trip_id})
     if trip is None:
         raise HTTPException(
-            status_code=404, detail=f"Could not find trip {update_request.trip_id} to update"
+            status_code=404, detail=f"Could not find trip {trip_id} to update"
         )
-    matching_events = [e for e in filter(lambda event: event.event_id == update_request.event_id, trip.events)]
+    matching_events = [e for e in filter(lambda event: event['event_id'] == event_id, trip.events)]
     if len(matching_events) < 1:
         raise HTTPException(
-            status_code=404, detail=f"Could not find event {update_request.event_id} in trip {trip.id}"
+            status_code=404, detail=f"Could not find event {event_id} in trip {trip.id}"
         )
     if update_request.location_type not in EventType:
         raise HTTPException(
@@ -205,11 +205,11 @@ async def update_event_location(update_request: UpdateEventLocationRequest):
     )
     updated_event = matching_events[0]
     if update_request.is_end_location:
-        updated_event.end_location = location
+        updated_event["end_location"] = location
     else:
-        updated_event.location = location
+        updated_event["location"] = location
     result = await db.trips.update_one({"trip_id": trip.id}, {
-        "events": [updated_event if event.event_id == update_request.event_id else event for event in trip.events]
+        "events": [updated_event if event["event_id"] == event_id else event for event in trip["events"]]
     })
     if result.modified_count < 1:
         raise HTTPException(
@@ -217,7 +217,7 @@ async def update_event_location(update_request: UpdateEventLocationRequest):
         )
     return result.raw_result
 
-@trip_router.delete("/{trip_id}/event/{event_id}", status_code=204)
+@trip_router.delete("/{trip_id}/event/{event_id}")
 async def delete_event(trip_id: str, event_id: str):
     db = get_db_client().trip_itinerary_planner
     trip = await db.trips.find_one({"trip_id": trip_id})
@@ -225,12 +225,12 @@ async def delete_event(trip_id: str, event_id: str):
         raise HTTPException(
             status_code=404, detail=f"Could not find trip {trip_id} to update"
         )
-    if not event_id in [e.id for e in trip.events]:
+    if not event_id in [e["event_id"] for e in trip.events]:
         raise HTTPException(
             status_code=404, detail=f"Could not find event {event_id} in trip {trip.id}"
         )
     result = await db.trips.update_one({"trip_id": trip_id}, {
-        "events": [event for event in trip.events if event.id != event_id]
+        "events": [event for event in trip["events"] if event["event_id"] != event_id]
     })
     if result.modified_count < 1:
         raise HTTPException(
