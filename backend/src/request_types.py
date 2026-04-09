@@ -40,3 +40,18 @@ class UpdateEventLocationRequest(BaseModel):
     location_type: str
     location_coords: list[float]
     is_end_location: bool
+
+class CreateTripInvitationRequest(BaseModel):
+    limit_uses: int
+    is_organizer: bool
+    expiry_time: datetime
+
+class CreateUserRequest(BaseModel):
+    user_id: str
+    display_name: str
+    phone_number: str
+    password: str
+
+class AuthenticateUserRequest(BaseModel):
+    user_id: str
+    password: str
