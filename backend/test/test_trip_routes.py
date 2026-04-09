@@ -108,7 +108,7 @@ def test_booking_summary_success():
 
         with TestClient(app) as client:
             # user1 has two bookings
-            response = client.get("/trips/trip1/booking-summary/user1")
+            response = client.get("/api/trips/trip1/booking-summary/user1")
             assert response.status_code == 200
             data = response.json()
             assert len(data) == 2
@@ -120,7 +120,7 @@ def test_booking_summary_success():
             assert provider_names == ["Provider A", "Provider B"]
 
             # user2 has one booking
-            response = client.get("/trips/trip1/booking-summary/user2")
+            response = client.get("/api/trips/trip1/booking-summary/user2")
             assert response.status_code == 200
             data = response.json()
             assert len(data) == 1
@@ -141,7 +141,7 @@ def test_get_trip_success():
         from src.main import app
 
         with TestClient(app) as client:
-            response = client.get("/trips/trip1")
+            response = client.get("/api/trips/trip1")
             assert response.status_code == 200
             assert response.json() == expected_trip
 
@@ -158,7 +158,7 @@ def test_get_trip_not_found():
         from src.main import app
 
         with TestClient(app) as client:
-            response = client.get("/trips/trip999")
+            response = client.get("/api/trips/trip999")
             assert response.status_code == 404
             assert response.json()["detail"] == "Trip trip999 not found"
 
@@ -181,7 +181,7 @@ def test_create_trip_success():
                 "start_time": "2025-03-01T08:00:00",
                 "end_time": "2025-03-07T20:00:00",
             }
-            response = client.post("/trips", json=payload)
+            response = client.post("/api/trips", json=payload)
             assert response.status_code == 201
             data = response.json()
             assert data["trip_id"] == "trip1"
@@ -209,7 +209,7 @@ def test_update_trip_success():
                 "start_time": "2025-01-01T09:00:00",
                 "end_time": "2025-01-02T17:00:00",
             }
-            response = client.put("/trips/trip1", json=payload)
+            response = client.put("/api/trips/trip1", json=payload)
             assert response.status_code == 200
             assert response.json()["trip_name"] == "Updated Name"
             trips_collection.update_one.assert_awaited_once()
@@ -227,15 +227,13 @@ def test_delete_trip_success():
         from src.main import app
 
         with TestClient(app) as client:
-            response = client.delete("/trips/trip1")
+            response = client.delete("/api/trips/trip1")
             assert response.status_code == 204
             trips_collection.delete_one.assert_awaited_once_with({"trip_id": "trip1"})
 
 
 def test_create_event_success():
-    trip = MagicMock()
-    trip.events = []
-    trip.id = "trip1"
+    trip = make_trip_dict("trip1")
     trips_collection = MagicMock()
     trips_collection.find_one = AsyncMock(return_value=trip)
 
@@ -254,7 +252,9 @@ def test_create_event_success():
         "end_time": "2025-03-02T21:00:00",
         "attachments": [],
     }
-    trips_collection.update_one = AsyncMock(return_value=make_update_result({**make_trip_dict(), "events": [new_event]}))
+    trips_collection.find_one = AsyncMock(side_effect=[trip, {**trip, "events": [new_event]}])
+
+    trips_collection.update_one = AsyncMock(return_value=make_update_result(None, modified_count=1))
 
     with patch("src.db.get_db_client") as mock_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn:
         mock_client = make_mock_db_client(trips_collection)
@@ -265,7 +265,7 @@ def test_create_event_success():
 
         with TestClient(app) as client:
             response = client.post(
-                "/trips/trip1/event",
+                "/api/trips/trip1/event",
                 json={
                     "event_name": "Dinner",
                     "event_type": "food",
@@ -277,6 +277,7 @@ def test_create_event_success():
                     "end_time": "2025-03-02T21:00:00",
                 },
             )
+            # print(response.json())
             assert response.status_code == 201
             data = response.json()
             assert data["events"][0]["event_name"] == "Dinner"
@@ -332,7 +333,7 @@ def test_update_event_success():
 
         with TestClient(app) as client:
             response = client.put(
-                "/trips/trip1/event/event1",
+                "/api/trips/trip1/event/event1",
                 json={
                     "event_name": "Lunch",
                     "event_type": "food",
@@ -398,7 +399,7 @@ def test_update_event_location_success():
 
         with TestClient(app) as client:
             response = client.put(
-                "/trips/trip1/event/event1/location",
+                "/api/trips/trip1/event/event1/location",
                 json={
                     "location_name": "Pizza Place", 
                     "location_type": "food",
@@ -466,7 +467,7 @@ def test_update_event_end_location_success():
 
         with TestClient(app) as client:
             response = client.put(
-                "/trips/trip1/event/event1/location",
+                "/api/trips/trip1/event/event1/location",
                 json={
                     "location_name": "Trail end", 
                     "location_type": "attraction",
@@ -515,7 +516,7 @@ def test_delete_event_success():
         from src.main import app
 
         with TestClient(app) as client:
-            response = client.delete("/trips/trip1/event/event1")
+            response = client.delete("/api/trips/trip1/event/event1")
             assert response.status_code == 200
             data = response.json()
             assert data["events"] == []
@@ -548,7 +549,7 @@ def test_update_organizers_success():
 
         with TestClient(app) as client:
             response = client.put(
-                "/trips/trip1/organizers",
+                "/api/trips/trip1/organizers",
                 json={"users": {"user2": True, "user1": False}},
             )
             assert response.status_code == 200
@@ -572,7 +573,7 @@ def test_update_trip_not_found():
 
         with TestClient(app) as client:
             response = client.put(
-                "/trips/trip999",
+                "/api/trips/trip999",
                 json={
                     "trip_name": "Updated Name",
                     "start_time": "2025-01-01T09:00:00",
@@ -595,7 +596,7 @@ def test_delete_trip_not_found():
         from src.main import app
 
         with TestClient(app) as client:
-            response = client.delete("/trips/trip999")
+            response = client.delete("/api/trips/trip999")
             assert response.status_code == 404
             assert "Could not find trip trip999 to delete" in response.json()["detail"]
 
@@ -613,7 +614,7 @@ def test_update_organizers_trip_not_found():
 
         with TestClient(app) as client:
             response = client.put(
-                "/trips/trip999/organizers",
+                "/api/trips/trip999/organizers",
                 json={"users": {"user2": True, "user1": False}},
             )
             assert response.status_code == 404
@@ -633,7 +634,7 @@ def test_create_event_trip_not_found():
 
         with TestClient(app) as client:
             response = client.post(
-                "/trips/trip999/event",
+                "/api/trips/trip999/event",
                 json={
                     "event_name": "Dinner",
                     "event_type": "food",
@@ -662,7 +663,7 @@ def test_update_event_trip_not_found():
 
         with TestClient(app) as client:
             response = client.put(
-                "/trips/trip999/event/event1",
+                "/api/trips/trip999/event/event1",
                 json={
                     "event_name": "Lunch",
                     "event_type": "food",
@@ -691,7 +692,7 @@ def test_update_event_event_not_found():
 
         with TestClient(app) as client:
             response = client.put(
-                "/trips/trip1/event/event999",
+                "/api/trips/trip1/event/event999",
                 json={
                     "event_name": "Lunch",
                     "event_type": "food",
@@ -717,7 +718,7 @@ def test_update_event_location_trip_not_found():
 
         with TestClient(app) as client:
             response = client.put(
-                "/trips/trip999/event/event1/location",
+                "/api/trips/trip999/event/event1/location",
                 json={
                     "location_name": "Pizza Place",
                     "location_type": "food",
@@ -745,7 +746,7 @@ def test_update_event_location_event_not_found():
 
         with TestClient(app) as client:
             response = client.put(
-                "/trips/trip1/event/event999/location",
+                "/api/trips/trip1/event/event999/location",
                 json={
                     "location_name": "Pizza Place",
                     "location_type": "food",
@@ -769,7 +770,7 @@ def test_delete_event_trip_not_found():
         from src.main import app
 
         with TestClient(app) as client:
-            response = client.delete("/trips/trip999/event/event1")
+            response = client.delete("/api/trips/trip999/event/event1")
             assert response.status_code == 404
             assert "Could not find trip trip999 to update" in response.json()["detail"]
 
@@ -789,7 +790,7 @@ def test_delete_event_event_not_found():
         from src.main import app
 
         with TestClient(app) as client:
-            response = client.delete("/trips/trip1/event/event999")
+            response = client.delete("/api/trips/trip1/event/event999")
             assert response.status_code == 404
             assert "Could not find event event999 in trip trip1" in response.json()["detail"]
 
@@ -813,7 +814,7 @@ def test_create_event_update_fails():
 
         with TestClient(app) as client:
             response = client.post(
-                "/trips/trip1/event",
+                "/api/trips/trip1/event",
                 json={
                     "event_name": "Dinner",
                     "event_type": "food",
@@ -826,7 +827,7 @@ def test_create_event_update_fails():
                 },
             )
             assert response.status_code == 500
-            assert "Found trip trip1 but failed to update it" in response.json()["detail"]
+            assert "Found trip trip1 but failed to parse it" in response.json()["detail"]
 
 
 def test_update_event_update_fails():
@@ -861,7 +862,7 @@ def test_update_event_update_fails():
 
         with TestClient(app) as client:
             response = client.put(
-                "/trips/trip1/event/event1",
+                "/api/trips/trip1/event/event1",
                 json={
                     "event_name": "Lunch",
                     "event_type": "food",
@@ -906,7 +907,7 @@ def test_update_event_location_update_fails():
 
         with TestClient(app) as client:
             response = client.put(
-                "/trips/trip1/event/event1/location",
+                "/api/trips/trip1/event/event1/location",
                 json={
                     "location_name": "Pizza Place",
                     "location_type": "food",
@@ -936,7 +937,7 @@ def test_update_organizers_update_fails():
 
         with TestClient(app) as client:
             response = client.put(
-                "/trips/trip1/organizers",
+                "/api/trips/trip1/organizers",
                 json={"users": {"user2": True, "user1": False}},
             )
             assert response.status_code == 500
@@ -974,6 +975,6 @@ def test_delete_event_update_fails():
         from src.main import app
 
         with TestClient(app) as client:
-            response = client.delete("/trips/trip1/event/event1")
+            response = client.delete("/api/trips/trip1/event/event1")
             assert response.status_code == 500
             assert "Found trip trip1 but failed to update it" in response.json()["detail"]

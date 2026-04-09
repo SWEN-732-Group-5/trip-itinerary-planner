@@ -7,7 +7,7 @@ class EventType(str, Enum): # named 'EventType' but recycled for other types of 
     attraction = 'attraction'
     food = 'food'
     lodging = 'lodging'
-    transportation = 'transporation'
+    transportation = 'transportation'
     other = 'other'
 
 class BookingSummaryItem(BaseModel):
