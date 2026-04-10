@@ -54,7 +54,7 @@ export async function authPost(
 	}
 	return post(endpoint, {
 		headers: {
-			Authorization: session,
+			'session-token': session,
 		},
 		...payload,
 	});
@@ -70,7 +70,7 @@ export async function authPatch(
 	}
 	return patch(endpoint, {
 		headers: {
-			Authorization: session,
+			'session-token': session,
 		},
 		...payload,
 	});
@@ -86,7 +86,7 @@ export async function authGet(
 	}
 	return get(endpoint, {
 		headers: {
-			Authorization: session,
+			'session-token': session,
 		},
 		...payload,
 	});
@@ -102,7 +102,7 @@ export async function authPut(
 	}
 	return put(endpoint, {
 		headers: {
-			Authorization: session,
+			'session-token': session,
 		},
 		...payload,
 	});
@@ -118,7 +118,7 @@ export async function authDel(
 	}
 	return del(endpoint, {
 		headers: {
-			Authorization: session,
+			'session-token': session,
 		},
 		...payload,
 	});
