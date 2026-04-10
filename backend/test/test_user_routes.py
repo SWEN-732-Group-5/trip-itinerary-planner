@@ -1,7 +1,5 @@
-import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import bcrypt
 from fastapi.testclient import TestClient
 from src.routes.auth import authenticated_user
 
