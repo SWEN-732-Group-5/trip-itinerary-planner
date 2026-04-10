@@ -28,7 +28,7 @@ export default function Home() {
 						<input
 							name="id"
 							type="text"
-							className="text-lg border-2 border-white bg-blue-300 rounded-md mr-4"
+							className="text-lg border-2 rounded-md mr-4"
 						/>
 						<button type="submit">Go to trip</button>
 					</form>
