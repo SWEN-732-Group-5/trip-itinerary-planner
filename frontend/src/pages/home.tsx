@@ -18,7 +18,9 @@ export default function Home() {
 			</p>
 			<LoggedOut>
 				<div className="mt-6">
-					<Link to="/login">login</Link>
+					<Button asChild size="lg">
+						<Link to="/login">login</Link>
+					</Button>
 				</div>
 			</LoggedOut>
 			<LoggedIn>
