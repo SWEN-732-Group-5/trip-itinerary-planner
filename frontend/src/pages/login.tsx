@@ -1,8 +1,9 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useSession } from '@/lib/auth/auth';
+import { LOGIN_ERROR_MSG, useSession } from '@/lib/auth/auth';
 import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { toast } from 'sonner';
 
 export default function Login() {
 	const {
@@ -15,21 +16,21 @@ export default function Login() {
 		const user_id = form.get('user_id');
 		const password = form.get('password');
 		if (typeof user_id !== 'string' || typeof password !== 'string') {
-			alert('Please enter both user ID and password');
+			alert('Please enter both username and password');
 			return;
 		}
-		try {
-			await login({ user_id, password });
-			alert('Login successful!');
-		} catch (error) {
-			alert(
-				`Login failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-			);
-		}
+		toast.promise(async () => await login({ user_id, password }), {
+			loading: 'Logging in...',
+			success: () => {
+				navigate('/');
+				return 'Login successful!';
+			},
+			error: (err) =>
+				`${err instanceof Error ? err.message : LOGIN_ERROR_MSG.DEFAULT}`,
+		});
 	};
 	useEffect(() => {
 		if (isLoggedIn) {
-			console.log('user already logged in navigating...');
 			navigate('/');
 		}
 	}, [isLoggedIn, navigate]);

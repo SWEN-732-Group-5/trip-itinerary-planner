@@ -1,8 +1,9 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useSession } from '@/lib/auth/auth';
+import { SIGNUP_ERROR_MSG, useSession } from '@/lib/auth/auth';
 import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { toast } from 'sonner';
 
 export default function Signup() {
 	const {
@@ -22,17 +23,20 @@ export default function Signup() {
 			typeof display_name !== 'string' ||
 			typeof phone_number !== 'string'
 		) {
-			alert('Please fill in all fields');
 			return;
 		}
-		try {
-			await signup({ user_id, password, display_name, phone_number });
-			alert('Signup successful!');
-		} catch (error) {
-			alert(
-				`Sign up failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-			);
-		}
+		toast.promise(
+			async () => signup({ user_id, password, display_name, phone_number }),
+			{
+				loading: 'Creating account...',
+				success: () => {
+					navigate('/');
+					return 'Success!';
+				},
+				error: (err) =>
+					`${err instanceof Error ? err.message : SIGNUP_ERROR_MSG.DEFAULT}`,
+			},
+		);
 	};
 	useEffect(() => {
 		if (isLoggedIn) {

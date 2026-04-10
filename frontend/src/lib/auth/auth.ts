@@ -16,6 +16,14 @@ const userAuthResponse = z.object({
 	session_token: z.string(),
 });
 
+export const LOGIN_ERROR_MSG = {
+	404: 'User not found',
+	401: 'Invalid user ID or password',
+	400: 'Bad request. Please check your input.',
+	500: 'Unknown Error. Please try again later.',
+	DEFAULT: 'Unknown Error. Please try again later.',
+};
+
 export const useLogin = () => {
 	return useMutation({
 		mutationFn: async (cred: { user_id: string; password: string }) => {
@@ -23,13 +31,22 @@ export const useLogin = () => {
 				body: JSON.stringify(cred),
 			});
 			if (!response.ok) {
-				throw new Error(`Login failed: ${response.statusText}`);
+				const message =
+					LOGIN_ERROR_MSG[response.status as keyof typeof LOGIN_ERROR_MSG] ||
+					LOGIN_ERROR_MSG.DEFAULT;
+				throw new Error(`Login failed: ${message}`);
 			}
 			return userAuthResponse.parse(await response.json());
 		},
 	});
 };
 
+export const SIGNUP_ERROR_MSG = {
+	409: 'User ID already exists',
+	400: 'Bad request. Please check your input.',
+	500: 'Unknown Error. Please try again later.',
+	DEFAULT: 'Unknown Error. Please try again later.',
+};
 export const createUserInput = z.object({
 	user_id: z.string(),
 	password: z.string(),
@@ -44,7 +61,16 @@ export const useSignup = () => {
 				body: JSON.stringify(cred),
 			});
 			if (!response.ok) {
-				throw new Error(`Signup failed: ${response.statusText}`);
+				if (response.status === 400) {
+					const text = await response.json();
+					if (text.detail) {
+						throw new Error(`Signup failed: ${text.detail}`);
+					}
+				}
+				const message =
+					SIGNUP_ERROR_MSG[response.status as keyof typeof SIGNUP_ERROR_MSG] ||
+					SIGNUP_ERROR_MSG.DEFAULT;
+				throw new Error(`Signup failed: ${message}`);
 			}
 			return response.json();
 		},

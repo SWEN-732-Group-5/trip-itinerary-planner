@@ -22,7 +22,7 @@ async def create_user(request: CreateUserRequest):
     existing_user = await db.users.find_one({"user_id": request.user_id})
     if existing_user is not None:
         raise HTTPException(
-            status_code=400, detail=f"User with id {request.user_id} already exists"
+            status_code=400, detail="Username is taken. Please choose a different one."
         )
     hashed_password = bcrypt.hashpw(
         request.password.encode(), bcrypt.gensalt()
