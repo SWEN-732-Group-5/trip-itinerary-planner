@@ -41,7 +41,7 @@ export default function Signup() {
 	}, [isLoggedIn, navigate]);
 
 	return (
-		<div className="w-full h-svh flex justify-center items-center">
+		<div className="w-full grow flex justify-center items-center">
 			<div className="p-6 pb-3 w-100 border-2 rounded-2xl">
 				<h1 className="text-2xl font-bold mb-4">Create a new account</h1>
 				<form
