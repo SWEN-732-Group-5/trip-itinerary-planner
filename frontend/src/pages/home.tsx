@@ -12,7 +12,7 @@ export default function Home() {
 		navigate(`/trips/${tripId}`);
 	};
 	return (
-		<div className="p-6 bg-slate-800">
+		<div className="p-6">
 			<h1 className="text-2xl font-bold">Welcome to Trip Itinerary Planner</h1>
 			<p className="mt-4 text-muted-foreground">
 				Plan your trips with ease and keep all your travel details in one place.
@@ -23,7 +23,7 @@ export default function Home() {
 				</div>
 			</LoggedOut>
 			<LoggedIn>
-				<div className="bg-slate-600 p-4 w-fit">
+				<div className="p-4 w-fit">
 					<form action={navigateToTrip}>
 						<input
 							name="id"
