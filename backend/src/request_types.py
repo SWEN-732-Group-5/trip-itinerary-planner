@@ -16,7 +16,7 @@ class UpdateTripRequest(BaseModel):
     end_time: datetime
 
 class UpdateOrganizersRequest(BaseModel):
-    users: dict[str, bool]
+    is_organizer: dict[str, bool]
 
 class CreateEventRequest(BaseModel):
     event_name: str
@@ -40,3 +40,26 @@ class UpdateEventLocationRequest(BaseModel):
     location_type: str
     location_coords: list[float]
     is_end_location: bool
+
+class CreateTripInvitationRequest(BaseModel):
+    limit_uses: int
+    is_organizer: bool
+    expiry_time: datetime
+
+class CreateUserRequest(BaseModel):
+    user_id: str
+    display_name: str
+    phone_number: str
+    password: str
+
+class AuthenticateUserRequest(BaseModel):
+    user_id: str
+    password: str
+
+class UpdateUserRequest(BaseModel):
+    display_name: Optional[str]
+    phone_number: Optional[str]
+
+class UpdatePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
