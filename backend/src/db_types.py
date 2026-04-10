@@ -33,12 +33,6 @@ class User(BaseModel):
     user_id: str
     display_name: str
     phone_number: str
-    password_hash: str
-
-class UserSession(BaseModel):
-    user_id: str
-    session_token: str
-    expiry_time: datetime
 
 class EventLocation(BaseModel):
     name: str
@@ -61,17 +55,10 @@ class Trip(BaseModel):
     trip_name: str
     start_time: datetime 
     end_time: datetime
-    organizers: list[str]
-    guests: list[str]
+    organizers: list[User]
+    guests: list[User]
     events: list[TripEvent]
-
-class TripInvitation(BaseModel):
-    invitation_id: str
-    trip_id: str
-    inviter_id: str
-    is_organizer: bool
-    limit_uses: int
-    expiry_time: datetime
+    locations: list[EventLocation]
 
 class ExpenseType(str, Enum):
     attraction = 'attraction'

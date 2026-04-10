@@ -2,10 +2,9 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+
 from src.db import get_mongodb_url, get_db_client
 from src.routes.trip_routes import trip_router
-from src.routes.user_routes import user_router
-from src.routes.auth import auth_router
 
 def config_logger(name) -> logging.Logger:
     # Configure basic logging
@@ -49,13 +48,13 @@ async def lifespan(app: FastAPI):
         ]
     )
     app.include_router(trip_router)
-    app.include_router(user_router)
-    app.include_router(auth_router)
     yield
     # Cleanup: close MongoDB connection
-    await app.state.client.close()
+    app.state.db.close()
+
 
 app = FastAPI(lifespan=lifespan)
+
 
 def main(reload: bool = False):
     import uvicorn
