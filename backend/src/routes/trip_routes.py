@@ -47,12 +47,6 @@ async def get_booking_summary(trip_id: str, user_id: str):
         for booking in bookings
     ]
 
-@trip_router.get("", response_model=list[Trip], status_code=200)
-async def get_all_trips():
-    db = get_db_client().trip_itinerary_planner
-    trips = await db.trips.find().to_list()
-    return [Trip.model_validate(trip) for trip in trips]
-
 
 @trip_router.get("/{trip_id}", response_model=Trip, status_code=200)
 async def get_trip(trip_id: str, session_token: Optional[str] = Header(None)):
