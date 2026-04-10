@@ -10,14 +10,6 @@ export async function post(endpoint: string, payload: FetchPayload) {
 	});
 }
 
-export async function patch(endpoint: string, payload: FetchPayload) {
-	return fetch(endpoint, {
-		method: 'PATCH',
-		headers: { 'Content-Type': 'application/json', ...payload?.headers },
-		...payload,
-	});
-}
-
 export async function get(endpoint: string, payload?: FetchPayload) {
 	return fetch(endpoint, {
 		method: 'GET',
@@ -53,22 +45,6 @@ export async function authPost(
 		throw new Error('No session available for authenticated request');
 	}
 	return post(endpoint, {
-		headers: {
-			'session-token': session,
-		},
-		...payload,
-	});
-}
-
-export async function authPatch(
-	endpoint: string,
-	session: SessionKey,
-	payload: FetchPayload,
-) {
-	if (!session) {
-		throw new Error('No session available for authenticated request');
-	}
-	return patch(endpoint, {
 		headers: {
 			'session-token': session,
 		},
@@ -129,8 +105,6 @@ export function useAuthFetch() {
 	return {
 		post: (endpoint: string, payload: FetchPayload) =>
 			authPost(endpoint, session_token, payload),
-		patch: (endpoint: string, payload: FetchPayload) =>
-			authPatch(endpoint, session_token, payload),
 		get: (endpoint: string, payload?: FetchPayload) =>
 			authGet(endpoint, session_token, payload),
 		put: (endpoint: string, payload: FetchPayload) =>
