@@ -55,3 +55,11 @@ class CreateUserRequest(BaseModel):
 class AuthenticateUserRequest(BaseModel):
     user_id: str
     password: str
+
+class UpdateUserRequest(BaseModel):
+    display_name: Optional[str]
+    phone_number: Optional[str]
+
+class UpdatePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str

@@ -210,9 +210,9 @@ def test_authenticate_user_session_creation():
             assert "expiry_time" in inserted_data
 
 
-# --- Tests for get_user_from_session_token ---
+# --- Tests for authenticated_user ---
 
-def test_get_user_from_session_token_success():
+def test_authenticated_user_success():
     """Test successful retrieval of user from valid session token"""
     user_data = make_user_dict("user1")
     session_data = make_session_dict("user1", "valid_token_123")
@@ -227,28 +227,28 @@ def test_get_user_from_session_token_success():
         mock_client = make_mock_db_client(users_collection, sessions_collection)
         mock_route_client_fn.return_value = mock_client
 
-        from src.routes.auth import get_user_from_session_token
+        from src.routes.auth import authenticated_user
 
         # This is an async function, so we need to run it in an event loop
         import asyncio
-        result = asyncio.run(get_user_from_session_token("valid_token_123"))
+        result = asyncio.run(authenticated_user("valid_token_123"))
         
         assert result["user_id"] == "user1"
         assert result["display_name"] == "Test User"
 
 
-def test_get_user_from_session_token_none():
+def test_authenticated_user_none():
     """Test that missing session token raises error"""
     with patch("src.routes.auth.get_db_client"):
-        from src.routes.auth import get_user_from_session_token
+        from src.routes.auth import authenticated_user
 
         import asyncio
         with pytest.raises(HTTPException) as exc_info:
-            asyncio.run(get_user_from_session_token(None))
+            asyncio.run(authenticated_user(None))
         assert "Session token is required" in str(exc_info.value.detail)
 
 
-def test_get_user_from_session_token_not_found():
+def test_authenticated_user_not_found():
     """Test that invalid session token raises error"""
     users_collection = MagicMock()
     
@@ -259,15 +259,15 @@ def test_get_user_from_session_token_not_found():
         mock_client = make_mock_db_client(users_collection, sessions_collection)
         mock_route_client_fn.return_value = mock_client
 
-        from src.routes.auth import get_user_from_session_token
+        from src.routes.auth import authenticated_user
 
         import asyncio
         with pytest.raises(HTTPException) as exc_info:
-            asyncio.run(get_user_from_session_token("invalid_token"))
+            asyncio.run(authenticated_user("invalid_token"))
         assert "Invalid or expired session token" in str(exc_info.value.detail)
 
 
-def test_get_user_from_session_token_expired():
+def test_authenticated_user_expired():
     """Test that expired session token raises error"""
     session_data = make_expired_session_dict("user1", "expired_token")
     
@@ -280,15 +280,15 @@ def test_get_user_from_session_token_expired():
         mock_client = make_mock_db_client(users_collection, sessions_collection)
         mock_route_client_fn.return_value = mock_client
 
-        from src.routes.auth import get_user_from_session_token
+        from src.routes.auth import authenticated_user
 
         import asyncio
         with pytest.raises(HTTPException) as exc_info:
-            asyncio.run(get_user_from_session_token("expired_token"))
+            asyncio.run(authenticated_user("expired_token"))
         assert "Invalid or expired session token" in str(exc_info.value.detail)
 
 
-def test_get_user_from_session_token_user_not_found():
+def test_authenticated_user_user_not_found():
     """Test that session references deleted user"""
     session_data = make_session_dict("deleted_user", "valid_token")
     
@@ -302,15 +302,15 @@ def test_get_user_from_session_token_user_not_found():
         mock_client = make_mock_db_client(users_collection, sessions_collection)
         mock_route_client_fn.return_value = mock_client
 
-        from src.routes.auth import get_user_from_session_token
+        from src.routes.auth import authenticated_user
 
         import asyncio
         with pytest.raises(HTTPException) as exc_info:
-            asyncio.run(get_user_from_session_token("valid_token"))
+            asyncio.run(authenticated_user("valid_token"))
         assert "not found" in str(exc_info.value.detail)
 
 
-def test_get_user_from_session_token_queries_database():
+def test_authenticated_user_queries_database():
     """Test that function properly queries session and user collections"""
     user_data = make_user_dict("user1")
     session_data = make_session_dict("user1", "test_token")
@@ -325,10 +325,10 @@ def test_get_user_from_session_token_queries_database():
         mock_client = make_mock_db_client(users_collection, sessions_collection)
         mock_route_client_fn.return_value = mock_client
 
-        from src.routes.auth import get_user_from_session_token
+        from src.routes.auth import authenticated_user
 
         import asyncio
-        asyncio.run(get_user_from_session_token("test_token"))
+        asyncio.run(authenticated_user("test_token"))
         
         # Verify that session lookup was performed with correct token
         sessions_collection.find_one.assert_called_once_with({"session_token": "test_token"})
@@ -363,7 +363,7 @@ def test_authenticate_then_use_session():
         mock_bcrypt.gensalt.return_value = b"generated_token_from_auth"
 
         from src.main import app
-        from src.routes.auth import get_user_from_session_token
+        from src.routes.auth import authenticated_user
 
         # First, authenticate the user
         with TestClient(app) as client:
@@ -379,5 +379,5 @@ def test_authenticate_then_use_session():
         
         # Then, use that token to get the user
         import asyncio
-        user = asyncio.run(get_user_from_session_token(session_token))
+        user = asyncio.run(authenticated_user(session_token))
         assert user["user_id"] == "user1"

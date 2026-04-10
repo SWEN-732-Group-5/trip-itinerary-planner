@@ -48,14 +48,15 @@ async def lifespan(app: FastAPI):
             },
         ]
     )
-    app.include_router(trip_router)
-    app.include_router(user_router)
-    app.include_router(auth_router)
     yield
     # Cleanup: close MongoDB connection
     await app.state.client.close()
 
 app = FastAPI(lifespan=lifespan)
+
+app.include_router(trip_router)
+app.include_router(user_router)
+app.include_router(auth_router)
 
 def main(reload: bool = False):
     import uvicorn
