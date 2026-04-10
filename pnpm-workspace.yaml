@@ -3,3 +3,4 @@ packages:
   - 'frontend'
 allowBuilds:
   esbuild: true
+  msw: false
