@@ -42,7 +42,7 @@ export default function Signup() {
 
 	return (
 		<div className="w-full h-svh flex justify-center items-center">
-			<div className="p-6 w-100">
+			<div className="p-6 pb-3 w-100 border-2 rounded-2xl">
 				<h1 className="text-2xl font-bold mb-4">Create a new account</h1>
 				<form
 					onSubmit={(e) => {
@@ -112,7 +112,7 @@ export default function Signup() {
 					<Button
 						type="submit"
 						size="lg"
-						className="w-full mt-4 text-lg py-5 peer-placeholder-shown/uid:opacity-50 peer-placeholder-shown/nam:opacity-50 peer-placeholder-shown/phn:opacity-50 peer-placeholder-shown/pwd:opacity-50"
+						className="w-full mt-5 text-lg py-5 peer-placeholder-shown/uid:opacity-50 peer-placeholder-shown/nam:opacity-50 peer-placeholder-shown/phn:opacity-50 peer-placeholder-shown/pwd:opacity-50"
 					>
 						Create Account
 					</Button>

@@ -36,7 +36,7 @@ export default function Login() {
 
 	return (
 		<div className="w-full h-svh flex justify-center items-center">
-			<div className="p-6 w-100">
+			<div className="p-6 pb-3 w-100 border-2 rounded-2xl">
 				<h1 className="text-2xl font-bold mb-4">Login</h1>
 				<form
 					onSubmit={(e) => {
@@ -46,7 +46,7 @@ export default function Login() {
 					}}
 					className="space-y-4"
 				>
-					<label htmlFor="user_id" className="block">
+					<label htmlFor="user_id" className="block mb-0">
 						Username
 					</label>
 					<Input
@@ -57,7 +57,7 @@ export default function Login() {
 						required
 						className="mt-1 block w-full p-5 text-xl peer/uid"
 					/>
-					<label htmlFor="password" className="block">
+					<label htmlFor="password" className="block mb-0">
 						Password
 					</label>
 					<Input
@@ -66,12 +66,12 @@ export default function Login() {
 						id="password"
 						placeholder="Password"
 						required
-						className="mt-1 block w-full p-5 text-xl peer/pwd"
+						className="mt-1 block w-full p-5 text-xl peer/pwd mb-0"
 					/>
 					<Button
 						type="submit"
 						size="lg"
-						className="w-full mt-4 text-lg py-5 peer-placeholder-shown/uid:opacity-50 peer-placeholder-shown/pwd:opacity-50"
+						className="w-full mt-5 text-lg py-5 peer-placeholder-shown/uid:opacity-50 peer-placeholder-shown/pwd:opacity-50"
 					>
 						Login
 					</Button>
