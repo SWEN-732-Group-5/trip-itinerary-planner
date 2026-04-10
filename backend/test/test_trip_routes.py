@@ -1,5 +1,6 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi.testclient import TestClient
+from datetime import datetime, timedelta
 
 
 # --- Fake data ---
@@ -94,6 +95,24 @@ def make_mock_db_client(trips_collection):
     mock_client.trip_itinerary_planner = mock_db
     mock_client.close = AsyncMock()
     return mock_client
+
+
+def make_invitation_dict(invitation_id: str = "invitation1", trip_id: str = "trip1", is_organizer: bool = False):
+    return {
+        "_id": invitation_id,
+        "invitation_id": invitation_id,
+        "trip_id": trip_id,
+        "inviter_id": "user1",
+        "is_organizer": is_organizer,
+        "limit_uses": 5,
+        "expiry_time": datetime.now() + timedelta(days=30),
+    }
+
+
+async def async_iter_mock(items):
+    """Helper to create an async iterator for mocking async for loops"""
+    for item in items:
+        yield item
 
 
 def test_booking_summary_success():
@@ -583,7 +602,7 @@ def test_update_organizers_success():
         with TestClient(app) as client:
             response = client.put(
                 "/api/trips/trip1/organizers",
-                json={"users": {"user2": True, "user1": False}},
+                json={"is_organizer": {"user2": True, "user1": False}},
                 headers={"session_token": "fake_token"},
             )
             assert response.status_code == 200
@@ -655,7 +674,7 @@ def test_update_organizers_trip_not_found():
         with TestClient(app) as client:
             response = client.put(
                 "/api/trips/trip999/organizers",
-                json={"users": {"user2": True, "user1": False}},
+                json={"is_organizer": {"user2": True, "user1": False}},
                 headers={"session_token": "fake_token"},
             )
             assert response.status_code == 404
@@ -997,7 +1016,7 @@ def test_update_organizers_update_fails():
         with TestClient(app) as client:
             response = client.put(
                 "/api/trips/trip1/organizers",
-                json={"users": {"user2": True, "user1": False}},
+                json={"is_organizer": {"user2": True, "user1": False}},
                 headers={"session_token": "fake_token"},
             )
             assert response.status_code == 500
@@ -1037,5 +1056,776 @@ def test_delete_event_update_fails():
 
         with TestClient(app) as client:
             response = client.delete("/api/trips/trip1/event/event1", headers={"session_token": "fake_token"})
+            assert response.status_code == 500
+            assert "Found trip trip1 but failed to update it" in response.json()["detail"]
+
+
+# --- Invitation-related tests ---
+
+def test_create_trip_invitation_success():
+    trip = make_trip_dict("trip1")
+    trip["organizers"] = ["user1"]
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=trip)
+
+    invitations_collection = MagicMock()
+    invitations_collection.find = MagicMock(return_value=MagicMock(to_list=AsyncMock(return_value=[])))
+    invitations_collection.insert_one = AsyncMock()
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn, patch("src.routes.trip_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_client.trip_itinerary_planner.trip_invitations = invitations_collection
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {"user_id": "user1"}
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.post(
+                "/api/trips/trip1/invite",
+                json={"is_organizer": True, "limit_uses": 5, "expiry_time": (datetime.now() + timedelta(days=30)).isoformat()},
+                headers={"session_token": "fake_token"},
+            )
+            assert response.status_code == 201
+            data = response.json()
+            assert data["trip_id"] == "trip1"
+            assert data["is_organizer"] == True
+            assert data["inviter_id"] == "user1"
+
+
+def test_create_trip_invitation_trip_not_found():
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=None)
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn, patch("src.routes.trip_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {"user_id": "user1"}
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.post(
+                "/api/trips/trip1/invite",
+                json={"is_organizer": False, "limit_uses": 5, "expiry_time": (datetime.now() + timedelta(days=30)).isoformat()},
+                headers={"session_token": "fake_token"},
+            )
+            assert response.status_code == 404
+            assert "Could not find trip trip1 to invite users to" in response.json()["detail"]
+
+
+def test_create_trip_invitation_not_organizer():
+    trip = make_trip_dict("trip1")
+    trip["organizers"] = ["user2"]
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=trip)
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn, patch("src.routes.trip_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {"user_id": "user1"}
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.post(
+                "/api/trips/trip1/invite",
+                json={"is_organizer": False, "limit_uses": 5, "expiry_time": (datetime.now() + timedelta(days=30)).isoformat()},
+                headers={"session_token": "fake_token"},
+            )
+            assert response.status_code == 403
+            assert "Only organizers can create invitations for a trip" in response.json()["detail"]
+
+
+def test_get_trip_invitations_success():
+    trip = make_trip_dict("trip1")
+    trip["organizers"] = ["user1"]
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=trip)
+
+    invitations = [
+        make_invitation_dict("invitation1", "trip1", False),
+        make_invitation_dict("invitation2", "trip1", True),
+    ]
+
+    invitations_collection = MagicMock()
+    invitations_collection.find = MagicMock(return_value=async_iter_mock(invitations))
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn, patch("src.routes.trip_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_client.trip_itinerary_planner.trip_invitations = invitations_collection
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {"user_id": "user1"}
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.get(
+                "/api/trips/trip1/invitations",
+                headers={"session_token": "fake_token"},
+            )
+            assert response.status_code == 200
+            data = response.json()
+            assert len(data) == 2
+            assert data[0]["invitation_id"] == "invitation1"
+            assert data[1]["is_organizer"] == True
+
+
+def test_get_trip_invitations_trip_not_found():
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=None)
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn, patch("src.routes.trip_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {"user_id": "user1"}
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.get(
+                "/api/trips/trip1/invitations",
+                headers={"session_token": "fake_token"},
+            )
+            assert response.status_code == 404
+            assert "Could not find trip trip1 to get invitations for" in response.json()["detail"]
+
+
+def test_get_trip_invitations_not_organizer():
+    trip = make_trip_dict("trip1")
+    trip["organizers"] = ["user2"]
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=trip)
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn, patch("src.routes.trip_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {"user_id": "user1"}
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.get(
+                "/api/trips/trip1/invitations",
+                headers={"session_token": "fake_token"},
+            )
+            assert response.status_code == 403
+            assert "Only organizers can view invitations for a trip" in response.json()["detail"]
+
+
+def test_get_trip_invitation_success():
+    invitation = make_invitation_dict("invitation1", "trip1")
+
+    invitations_collection = MagicMock()
+    invitations_collection.find_one = AsyncMock(return_value=invitation)
+
+    trips_collection = MagicMock()
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_client.trip_itinerary_planner.trip_invitations = invitations_collection
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.get("/api/trips/invitation/invitation1")
+            assert response.status_code == 200
+            data = response.json()
+            assert data["invitation_id"] == "invitation1"
+            assert data["trip_id"] == "trip1"
+
+
+def test_get_trip_invitation_not_found():
+    invitations_collection = MagicMock()
+    invitations_collection.find_one = AsyncMock(return_value=None)
+
+    trips_collection = MagicMock()
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_client.trip_itinerary_planner.trip_invitations = invitations_collection
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.get("/api/trips/invitation/invalid_invitation")
+            assert response.status_code == 404
+            assert "Could not find invitation invalid_invitation" in response.json()["detail"]
+
+
+def test_accept_trip_invitation_success_as_guest():
+    invitation = make_invitation_dict("invitation1", "trip1", False)
+    invitation["limit_uses"] = 5
+    invitation["expiry_time"] = datetime.now() + timedelta(days=30)
+
+    trip = make_trip_dict("trip1")
+    trip["organizers"] = ["user1"]
+    trip["guests"] = []
+
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(side_effect=[trip, trip])
+    trips_collection.update_one = AsyncMock(return_value=make_update_result(None, modified_count=1))
+
+    invitations_collection = MagicMock()
+    invitations_collection.find_one = AsyncMock(return_value=invitation)
+    invitations_collection.update_one = AsyncMock(return_value=make_update_result(None, modified_count=1))
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn, patch("src.routes.trip_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_client.trip_itinerary_planner.trip_invitations = invitations_collection
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {"user_id": "user2"}
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.put(
+                "/api/trips/invitation/invitation1/accept",
+                headers={"session_token": "fake_token"},
+            )
+            assert response.status_code == 200
+            data = response.json()
+            assert data["trip"]["trip_id"] == "trip1"
+
+
+def test_accept_trip_invitation_success_as_organizer():
+    invitation = make_invitation_dict("invitation1", "trip1", True)
+    invitation["limit_uses"] = 3
+    invitation["expiry_time"] = datetime.now() + timedelta(days=30)
+
+    trip = make_trip_dict("trip1")
+    trip["organizers"] = ["user1"]
+    trip["guests"] = []
+
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(side_effect=[trip, trip])
+    trips_collection.update_one = AsyncMock(return_value=make_update_result(None, modified_count=1))
+
+    invitations_collection = MagicMock()
+    invitations_collection.find_one = AsyncMock(return_value=invitation)
+    invitations_collection.update_one = AsyncMock(return_value=make_update_result(None, modified_count=1))
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn, patch("src.routes.trip_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_client.trip_itinerary_planner.trip_invitations = invitations_collection
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {"user_id": "user3"}
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.put(
+                "/api/trips/invitation/invitation1/accept",
+                headers={"session_token": "fake_token"},
+            )
+            assert response.status_code == 200
+
+
+def test_accept_trip_invitation_not_found():
+    invitations_collection = MagicMock()
+    invitations_collection.find_one = AsyncMock(return_value=None)
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn, patch("src.routes.trip_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(MagicMock())
+        mock_client.trip_itinerary_planner.trip_invitations = invitations_collection
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {"user_id": "user1"}
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.put(
+                "/api/trips/invitation/invalid_invitation/accept",
+                headers={"session_token": "fake_token"},
+            )
+            assert response.status_code == 404
+            assert "Could not find invitation invalid_invitation" in response.json()["detail"]
+
+
+def test_accept_trip_invitation_expired():
+    invitation = make_invitation_dict("invitation1", "trip1", False)
+    invitation["expiry_time"] = datetime.now() - timedelta(days=1)
+
+    invitations_collection = MagicMock()
+    invitations_collection.find_one = AsyncMock(return_value=invitation)
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn, patch("src.routes.trip_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(MagicMock())
+        mock_client.trip_itinerary_planner.trip_invitations = invitations_collection
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {"user_id": "user1"}
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.put(
+                "/api/trips/invitation/invitation1/accept",
+                headers={"session_token": "fake_token"},
+            )
+            assert response.status_code == 400
+            assert "has expired and can no longer be accepted" in response.json()["detail"]
+
+
+def test_accept_trip_invitation_no_uses_left():
+    invitation = make_invitation_dict("invitation1", "trip1", False)
+    invitation["limit_uses"] = 0
+    invitation["expiry_time"] = datetime.now() + timedelta(days=30)
+
+    invitations_collection = MagicMock()
+    invitations_collection.find_one = AsyncMock(return_value=invitation)
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn, patch("src.routes.trip_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(MagicMock())
+        mock_client.trip_itinerary_planner.trip_invitations = invitations_collection
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {"user_id": "user1"}
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.put(
+                "/api/trips/invitation/invitation1/accept",
+                headers={"session_token": "fake_token"},
+            )
+            assert response.status_code == 400
+            assert "has already been used the maximum number of times" in response.json()["detail"]
+
+
+def test_accept_trip_invitation_trip_not_found():
+    invitation = make_invitation_dict("invitation1", "trip1", False)
+    invitation["expiry_time"] = datetime.now() + timedelta(days=30)
+
+    invitations_collection = MagicMock()
+    invitations_collection.find_one = AsyncMock(return_value=invitation)
+
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=None)
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn, patch("src.routes.trip_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_client.trip_itinerary_planner.trip_invitations = invitations_collection
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {"user_id": "user2"}
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.put(
+                "/api/trips/invitation/invitation1/accept",
+                headers={"session_token": "fake_token"},
+            )
+            assert response.status_code == 404
+            assert "Could not find trip trip1 to accept invitation for" in response.json()["detail"]
+
+
+def test_accept_trip_invitation_already_member():
+    invitation = make_invitation_dict("invitation1", "trip1", False)
+    invitation["expiry_time"] = datetime.now() + timedelta(days=30)
+
+    trip = make_trip_dict("trip1")
+    trip["organizers"] = ["user1"]
+    trip["guests"] = ["user2"]
+
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=trip)
+    trips_collection.delete_many = AsyncMock()
+
+    invitations_collection = MagicMock()
+    invitations_collection.find_one = AsyncMock(return_value=invitation)
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn, patch("src.routes.trip_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_client.trip_itinerary_planner.trip_invitations = invitations_collection
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {"user_id": "user2"}
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.put(
+                "/api/trips/invitation/invitation1/accept",
+                headers={"session_token": "fake_token"},
+            )
+            assert response.status_code == 400
+            assert "is already a member of trip" in response.json()["detail"]
+
+
+def test_delete_trip_invitation_success():
+    trip = make_trip_dict("trip1")
+    trip["organizers"] = ["user1"]
+
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=trip)
+
+    invitation = make_invitation_dict("invitation1", "trip1")
+
+    invitations_collection = MagicMock()
+    invitations_collection.find_one = AsyncMock(return_value=invitation)
+    invitations_collection.delete_one = AsyncMock(return_value=make_delete_result(1))
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn, patch("src.routes.trip_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_client.trip_itinerary_planner.trip_invitations = invitations_collection
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {"user_id": "user1"}
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.delete(
+                "/api/trips/trip1/invite/invitation1",
+                headers={"session_token": "fake_token"},
+            )
+            assert response.status_code == 204
+
+
+def test_delete_trip_invitation_not_found():
+    trip = make_trip_dict("trip1")
+    trip["organizers"] = ["user1"]
+
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=trip)
+
+    invitations_collection = MagicMock()
+    invitations_collection.find_one = AsyncMock(return_value=None)
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn, patch("src.routes.trip_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_client.trip_itinerary_planner.trip_invitations = invitations_collection
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {"user_id": "user1"}
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.delete(
+                "/api/trips/trip1/invite/invalid_invitation",
+                headers={"session_token": "fake_token"},
+            )
+            assert response.status_code == 404
+            assert "Could not find invitation invalid_invitation for trip trip1" in response.json()["detail"]
+
+
+def test_delete_trip_invitation_trip_not_found():
+    invitations_collection = MagicMock()
+    invitation = make_invitation_dict("invitation1", "trip1")
+    invitations_collection.find_one = AsyncMock(return_value=invitation)
+
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=None)
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn, patch("src.routes.trip_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_client.trip_itinerary_planner.trip_invitations = invitations_collection
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {"user_id": "user1"}
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.delete(
+                "/api/trips/trip1/invite/invitation1",
+                headers={"session_token": "fake_token"},
+            )
+            assert response.status_code == 404
+            assert "Could not find trip trip1 to delete invitation from" in response.json()["detail"]
+
+
+def test_delete_trip_invitation_not_organizer():
+    trip = make_trip_dict("trip1")
+    trip["organizers"] = ["user2"]
+
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=trip)
+
+    invitation = make_invitation_dict("invitation1", "trip1")
+
+    invitations_collection = MagicMock()
+    invitations_collection.find_one = AsyncMock(return_value=invitation)
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn, patch("src.routes.trip_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_client.trip_itinerary_planner.trip_invitations = invitations_collection
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {"user_id": "user1"}
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.delete(
+                "/api/trips/trip1/invite/invitation1",
+                headers={"session_token": "fake_token"},
+            )
+            assert response.status_code == 403
+            assert "Only organizers can delete invitations for a trip" in response.json()["detail"]
+
+
+# --- Leave trip and remove user routes ---
+
+def test_leave_trip_success_as_organizer():
+    trip = make_trip_dict("trip1")
+    trip["organizers"] = ["user1", "user2"]
+    trip["guests"] = ["user3"]
+
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=trip)
+    trips_collection.update_one = AsyncMock(return_value=make_update_result(None, modified_count=1))
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn, patch("src.routes.trip_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {"user_id": "user1"}
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.put(
+                "/api/trips/trip1/leave-trip",
+                headers={"session_token": "fake_token"},
+            )
+            assert response.status_code == 200
+            data = response.json()
+            assert "trip" in data
+
+
+def test_leave_trip_success_as_guest():
+    trip = make_trip_dict("trip1")
+    trip["organizers"] = ["user1"]
+    trip["guests"] = ["user2", "user3"]
+
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=trip)
+    trips_collection.update_one = AsyncMock(return_value=make_update_result(None, modified_count=1))
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn, patch("src.routes.trip_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {"user_id": "user2"}
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.put(
+                "/api/trips/trip1/leave-trip",
+                headers={"session_token": "fake_token"},
+            )
+            assert response.status_code == 200
+
+
+def test_leave_trip_not_found():
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=None)
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn, patch("src.routes.trip_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {"user_id": "user1"}
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.put(
+                "/api/trips/trip1/leave-trip",
+                headers={"session_token": "fake_token"},
+            )
+            assert response.status_code == 404
+            assert "Could not find trip trip1" in response.json()["detail"]
+
+
+def test_leave_trip_not_member():
+    trip = make_trip_dict("trip1")
+    trip["organizers"] = ["user2"]
+    trip["guests"] = ["user3"]
+
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=trip)
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn, patch("src.routes.trip_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {"user_id": "user1"}
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.put(
+                "/api/trips/trip1/leave-trip",
+                headers={"session_token": "fake_token"},
+            )
+            assert response.status_code == 403
+            assert "Not a member of this trip" in response.json()["detail"]
+
+
+def test_leave_trip_update_fails():
+    trip = make_trip_dict("trip1")
+    trip["organizers"] = ["user1"]
+    trip["guests"] = []
+
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=trip)
+    trips_collection.update_one = AsyncMock(return_value=make_update_result(None, modified_count=0))
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn, patch("src.routes.trip_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {"user_id": "user1"}
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.put(
+                "/api/trips/trip1/leave-trip",
+                headers={"session_token": "fake_token"},
+            )
+            assert response.status_code == 500
+            assert "Found trip trip1 but failed to update it" in response.json()["detail"]
+
+
+def test_remove_user_from_trip_success():
+    trip = make_trip_dict("trip1")
+    trip["organizers"] = ["user1"]
+    trip["guests"] = ["user2", "user3"]
+
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=trip)
+    trips_collection.update_one = AsyncMock(return_value=make_update_result(None, modified_count=1))
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn, patch("src.routes.trip_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {"user_id": "user1"}
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.put(
+                "/api/trips/trip1/remove-user/user2",
+                headers={"session_token": "fake_token"},
+            )
+            assert response.status_code == 200
+            data = response.json()
+            assert "trip" in data
+
+
+def test_remove_user_from_trip_organizer():
+    trip = make_trip_dict("trip1")
+    trip["organizers"] = ["user1", "user2"]
+    trip["guests"] = ["user3"]
+
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=trip)
+    trips_collection.update_one = AsyncMock(return_value=make_update_result(None, modified_count=1))
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn, patch("src.routes.trip_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {"user_id": "user1"}
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.put(
+                "/api/trips/trip1/remove-user/user2",
+                headers={"session_token": "fake_token"},
+            )
+            assert response.status_code == 200
+
+
+def test_remove_user_from_trip_not_found():
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=None)
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn, patch("src.routes.trip_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {"user_id": "user1"}
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.put(
+                "/api/trips/trip1/remove-user/user2",
+                headers={"session_token": "fake_token"},
+            )
+            assert response.status_code == 404
+            assert "Could not find trip trip1" in response.json()["detail"]
+
+
+def test_remove_user_from_trip_not_organizer():
+    trip = make_trip_dict("trip1")
+    trip["organizers"] = ["user1"]
+    trip["guests"] = ["user2", "user3"]
+
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=trip)
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn, patch("src.routes.trip_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {"user_id": "user2"}
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.put(
+                "/api/trips/trip1/remove-user/user3",
+                headers={"session_token": "fake_token"},
+            )
+            assert response.status_code == 403
+            assert "Only organizers can remove users from a trip" in response.json()["detail"]
+
+
+def test_remove_user_from_trip_update_fails():
+    trip = make_trip_dict("trip1")
+    trip["organizers"] = ["user1"]
+    trip["guests"] = ["user2"]
+
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=trip)
+    trips_collection.update_one = AsyncMock(return_value=make_update_result(None, modified_count=0))
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn, patch("src.routes.trip_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {"user_id": "user1"}
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.put(
+                "/api/trips/trip1/remove-user/user2",
+                headers={"session_token": "fake_token"},
+            )
             assert response.status_code == 500
             assert "Found trip trip1 but failed to update it" in response.json()["detail"]

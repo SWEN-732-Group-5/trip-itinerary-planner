@@ -504,7 +504,7 @@ async def accept_trip_invitation(
         raise HTTPException(
             status_code=404, detail=f"Could not find trip {invitation["trip_id"]} to accept invitation for"
         )
-    if user["user_id"] in [guest["user_id"] for guest in trip["guests"]] or user["user_id"] in trip["organizers"]:
+    if user["user_id"] in trip["guests"] or user["user_id"] in trip["organizers"]:
         raise HTTPException(
             status_code=400, detail=f"User {user['user_id']} is already a member of trip {trip["trip_id"]}"
         )
