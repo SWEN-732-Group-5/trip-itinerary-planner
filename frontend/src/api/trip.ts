@@ -9,7 +9,7 @@ export function useTrip(tripId?: string) {
 		queryKey: ['trip', tripId],
 		queryFn: async () => {
 			const response = await get(
-				!tripId ? `/api/trips` : `/api/trips/${tripId}`,
+				!tripId ? '/api/user/trips' : `/api/trips/${tripId}`,
 			);
 			if (!response.ok) {
 				throw new Error(`Error fetching trip details: ${response.statusText}`);
@@ -30,15 +30,16 @@ export function useMutateTrip() {
 			if (!response.ok) {
 				throw new Error(`Error updating trip: ${response.statusText}`);
 			}
-			if (updatedTrip.trip_id) {
-				await client.invalidateQueries({
-					queryKey: ['trip', updatedTrip.trip_id],
-				});
-				await client.invalidateQueries({
-					queryKey: ['trip', updatedTrip.trip_id],
-				});
+			const [trip] = await Promise.allSettled([
+				response.json(),
+				client.invalidateQueries({ queryKey: ['trips'] }),
+			]);
+			if (trip.status === 'rejected') {
+				throw new Error(
+					`Error parsing trip response: ${trip.reason instanceof Error ? trip.reason.message : 'Unknown error'}`,
+				);
 			}
-			return tripSchema.parse(await response.json());
+			return tripSchema.parse(trip.value);
 		},
 	});
 }
@@ -71,10 +72,16 @@ export function useCreateTripEvent({ trip_id }: { trip_id?: string }) {
 			if (!response.ok) {
 				throw new Error(`Error creating trip event: ${response.statusText}`);
 			}
-			await client.invalidateQueries({
-				queryKey: ['trip', trip_id],
-			});
-			return tripSchema.parse(await response.json());
+			const [trip] = await Promise.allSettled([
+				response.json(),
+				client.invalidateQueries({ queryKey: ['trip'] }),
+			]);
+			if (trip.status === 'rejected') {
+				throw new Error(
+					`Error parsing trip response: ${trip.reason instanceof Error ? trip.reason.message : 'Unknown error'}`,
+				);
+			}
+			return tripSchema.parse(trip.value);
 		},
 	});
 }
@@ -103,10 +110,16 @@ export function useMutateTripEvent({ trip_id }: { trip_id?: string }) {
 			if (!response.ok) {
 				throw new Error(`Error updating trip event: ${response.statusText}`);
 			}
-			await client.invalidateQueries({
-				queryKey: ['trip', trip_id],
-			});
-			return tripSchema.parse(await response.json());
+			const [trip] = await Promise.allSettled([
+				response.json(),
+				client.invalidateQueries({ queryKey: ['trip'] }),
+			]);
+			if (trip.status === 'rejected') {
+				throw new Error(
+					`Error parsing trip response: ${trip.reason instanceof Error ? trip.reason.message : 'Unknown error'}`,
+				);
+			}
+			return tripSchema.parse(trip.value);
 		},
 	});
 }
