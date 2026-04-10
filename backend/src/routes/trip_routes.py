@@ -206,21 +206,6 @@ async def create_event(
             status_code=500, detail=f"Found trip {trip_id} but failed to parse it: {e}"
         )
     next_id = len(trip.events) + 1
-    if creation_request.event_type not in EventType:
-        raise HTTPException(
-            status_code=400,
-            detail=f'"{creation_request.event_type}" is not a valid event type!',
-        )
-    if creation_request.location_type not in EventType:
-        raise HTTPException(
-            status_code=400,
-            detail=f'"{creation_request.location_type}" is not a valid location type!',
-        )
-    if len(creation_request.location_coords) != 2:
-        raise HTTPException(
-            status_code=400,
-            detail="Must provide both a latitude and longitude coordinate!",
-        )
     location = EventLocation(
         name=creation_request.location_name,
         location_type=EventType[creation_request.location_type],
@@ -233,7 +218,7 @@ async def create_event(
         event_id=f"event{next_id}",
         event_name=creation_request.event_name,
         event_description=creation_request.event_description,
-        event_type=EventType[creation_request.event_type],
+        event_type=creation_request.event_type,
         location=location,
         end_location=None,
         start_time=creation_request.start_time,
