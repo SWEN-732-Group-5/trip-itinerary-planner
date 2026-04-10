@@ -3,28 +3,19 @@ import z from 'zod';
 import { useAuthFetch } from './fetch';
 import { eventTypeEnum, tripSchema, type Trip } from './model';
 
-export async function get_trip_details(
-	tripId?: string,
-): Promise<Trip | undefined> {
-	if (!tripId) {
-		return undefined;
-	}
-	try {
-		const response = await fetch(`/api/trips/${tripId}`);
-		if (!response.ok) {
-			throw new Error(`Error fetching trip details: ${response.statusText}`);
-		}
-		return tripSchema.parse(await response.json());
-	} catch (error) {
-		console.error(error);
-		throw error;
-	}
-}
-
 export function useTrip(tripId?: string) {
+	const { get } = useAuthFetch();
 	return useQuery({
 		queryKey: ['trip', tripId],
-		queryFn: async () => get_trip_details(tripId),
+		queryFn: async () => {
+			const response = await get(
+				!tripId ? `/api/trips` : `/api/trips/${tripId}`,
+			);
+			if (!response.ok) {
+				throw new Error(`Error fetching trip details: ${response.statusText}`);
+			}
+			return tripSchema.parse(await response.json());
+		},
 	});
 }
 

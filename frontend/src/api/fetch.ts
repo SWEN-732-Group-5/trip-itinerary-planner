@@ -1,11 +1,11 @@
 import { useSession } from '@/lib/auth/auth';
 
-type FetchPayload = Omit<Parameters<typeof fetch>[1], 'method' | 'headers'>;
+type FetchPayload = Omit<NonNullable<Parameters<typeof fetch>[1]>, 'method'>;
 
 export async function post(endpoint: string, payload: FetchPayload) {
 	return fetch(endpoint, {
 		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
+		headers: { 'Content-Type': 'application/json', ...payload?.headers },
 		...payload,
 	});
 }
@@ -13,7 +13,7 @@ export async function post(endpoint: string, payload: FetchPayload) {
 export async function patch(endpoint: string, payload: FetchPayload) {
 	return fetch(endpoint, {
 		method: 'PATCH',
-		headers: { 'Content-Type': 'application/json' },
+		headers: { 'Content-Type': 'application/json', ...payload?.headers },
 		...payload,
 	});
 }
@@ -21,7 +21,7 @@ export async function patch(endpoint: string, payload: FetchPayload) {
 export async function get(endpoint: string, payload?: FetchPayload) {
 	return fetch(endpoint, {
 		method: 'GET',
-		headers: { 'Content-Type': 'application/json' },
+		headers: { 'Content-Type': 'application/json', ...payload?.headers },
 		...payload,
 	});
 }
@@ -29,7 +29,7 @@ export async function get(endpoint: string, payload?: FetchPayload) {
 export async function put(endpoint: string, payload: FetchPayload) {
 	return fetch(endpoint, {
 		method: 'PUT',
-		headers: { 'Content-Type': 'application/json' },
+		headers: { 'Content-Type': 'application/json', ...payload?.headers },
 		...payload,
 	});
 }
@@ -37,8 +37,8 @@ export async function put(endpoint: string, payload: FetchPayload) {
 export async function del(endpoint: string, payload?: FetchPayload) {
 	return fetch(endpoint, {
 		method: 'DELETE',
-		headers: { 'Content-Type': 'application/json' },
 		...payload,
+		headers: { 'Content-Type': 'application/json', ...payload?.headers },
 	});
 }
 
@@ -52,11 +52,9 @@ export async function authPost(
 	if (!session) {
 		throw new Error('No session available for authenticated request');
 	}
-	return fetch(endpoint, {
-		method: 'POST',
+	return post(endpoint, {
 		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${session}`,
+			Authorization: session,
 		},
 		...payload,
 	});
@@ -70,11 +68,9 @@ export async function authPatch(
 	if (!session) {
 		throw new Error('No session available for authenticated request');
 	}
-	return fetch(endpoint, {
-		method: 'PATCH',
+	return patch(endpoint, {
 		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${session}`,
+			Authorization: session,
 		},
 		...payload,
 	});
@@ -88,11 +84,9 @@ export async function authGet(
 	if (!session) {
 		throw new Error('No session available for authenticated request');
 	}
-	return fetch(endpoint, {
-		method: 'GET',
+	return get(endpoint, {
 		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${session}`,
+			Authorization: session,
 		},
 		...payload,
 	});
@@ -106,11 +100,9 @@ export async function authPut(
 	if (!session) {
 		throw new Error('No session available for authenticated request');
 	}
-	return fetch(endpoint, {
-		method: 'PUT',
+	return put(endpoint, {
 		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${session}`,
+			Authorization: session,
 		},
 		...payload,
 	});
@@ -124,11 +116,9 @@ export async function authDel(
 	if (!session) {
 		throw new Error('No session available for authenticated request');
 	}
-	return fetch(endpoint, {
-		method: 'DELETE',
+	return del(endpoint, {
 		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${session}`,
+			Authorization: session,
 		},
 		...payload,
 	});
