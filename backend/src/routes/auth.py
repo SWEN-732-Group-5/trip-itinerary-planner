@@ -1,4 +1,4 @@
-import os
+import secrets
 import bcrypt
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
@@ -6,9 +6,6 @@ from fastapi import APIRouter, HTTPException
 
 from src.db import get_db_client
 from src.request_types import AuthenticateUserRequest
-
-load_dotenv()
-salt = os.getenv("HASH_SALT", "placeholder_salt").encode()
 
 auth_router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -18,10 +15,9 @@ async def authenticate_user(request: AuthenticateUserRequest):
     user = await db.users.find_one({"user_id": request.user_id})
     if user is None:
         raise HTTPException(status_code=404, detail=f"User with id {request.user_id} not found")
-    hashed_password = bcrypt.hashpw(request.password.encode(), salt)
     if not bcrypt.checkpw(request.password.encode(), user["password_hash"].encode()):
         raise HTTPException(status_code=401, detail="Invalid password")
-    session_token = bcrypt.gensalt().decode() 
+    session_token = secrets.token_urlsafe(32)
     expiry_time = datetime.now() + timedelta(minutes=30)
     await db.user_sessions.insert_one({
         "user_id": request.user_id,
