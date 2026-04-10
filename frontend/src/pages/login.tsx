@@ -46,41 +46,38 @@ export default function Login() {
 					}}
 					className="space-y-4"
 				>
-					<div>
-						<label htmlFor="user_id" className="block">
-							User ID
-						</label>
-						<Input
-							type="text"
-							name="user_id"
-							id="user_id"
-							required
-							className="mt-1 block w-full p-5 text-2xl"
-						/>
-					</div>
-					<div>
-						<label htmlFor="password" className="block">
-							Password
-						</label>
-						<Input
-							type="password"
-							name="password"
-							id="password"
-							required
-							className="mt-1 block w-full p-5 text-2xl"
-						/>
-					</div>
-					<Button type="submit" size="lg" className="w-full mt-4">
+					<label htmlFor="user_id" className="block">
+						Username
+					</label>
+					<Input
+						type="text"
+						name="user_id"
+						id="user_id"
+						placeholder="Username"
+						required
+						className="mt-1 block w-full p-5 text-xl peer/uid"
+					/>
+					<label htmlFor="password" className="block">
+						Password
+					</label>
+					<Input
+						type="password"
+						name="password"
+						id="password"
+						placeholder="Password"
+						required
+						className="mt-1 block w-full p-5 text-xl peer/pwd"
+					/>
+					<Button
+						type="submit"
+						size="lg"
+						className="w-full mt-4 text-lg py-5 peer-placeholder-shown/uid:opacity-50 peer-placeholder-shown/pwd:opacity-50"
+					>
 						Login
 					</Button>
 				</form>
-				<Button variant="link" size="sm" asChild>
-					<Link
-						to="/signup"
-						className="block mt-4 text-sm text-blue-400 hover:underline"
-					>
-						Don't have an account? Sign up
-					</Link>
+				<Button variant="link" size="sm" className="py-5" asChild>
+					<Link to="/signup">Don't have an account? Sign up</Link>
 				</Button>
 			</div>
 		</div>

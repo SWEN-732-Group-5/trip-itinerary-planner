@@ -1,3 +1,5 @@
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useSession } from '@/lib/auth/auth';
 import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
@@ -39,90 +41,86 @@ export default function Signup() {
 	}, [isLoggedIn, navigate]);
 
 	return (
-		<div className="p-6 bg-slate-700 w-100">
-			<h1 className="text-2xl font-bold mb-4">Create a new account</h1>
-			<form
-				onSubmit={(e) => {
-					e.preventDefault();
-					const formData = new FormData(e.currentTarget);
-					handleSubmit(formData);
-				}}
-				className="space-y-4"
-			>
-				<div>
+		<div className="w-full h-svh flex justify-center items-center">
+			<div className="p-6 w-100">
+				<h1 className="text-2xl font-bold mb-4">Create a new account</h1>
+				<form
+					onSubmit={(e) => {
+						e.preventDefault();
+						const formData = new FormData(e.currentTarget);
+						handleSubmit(formData);
+					}}
+					className="space-y-4"
+				>
 					<label
 						htmlFor="user_id"
-						className="block text-sm font-medium text-gray-300"
+						className="block text-sm font-medium opacity-80 mb-0"
 					>
-						User ID
+						Username
 					</label>
-					<input
+					<Input
 						type="text"
 						name="user_id"
 						id="user_id"
+						placeholder="Username"
 						required
-						className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+						className="block w-full p-5 text-xl peer/uid"
 					/>
-				</div>
-				<div>
 					<label
 						htmlFor="display_name"
-						className="block text-sm font-medium text-gray-300"
+						className="block text-sm font-medium opacity-80 mb-0"
 					>
 						Name
 					</label>
-					<input
+					<Input
 						type="text"
 						name="display_name"
 						id="display_name"
+						placeholder="Name"
 						required
-						className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+						className="block w-full p-5 text-xl peer/nam"
 					/>
-				</div>
-				<div>
 					<label
 						htmlFor="phone_number"
-						className="block text-sm font-medium text-gray-300"
+						className="block text-sm font-medium opacity-80 mb-0"
 					>
 						Phone Number
 					</label>
-					<input
+					<Input
 						type="text"
 						autoComplete="tel"
 						name="phone_number"
+						placeholder="Phone Number"
 						id="phone_number"
 						required
-						className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+						className="mt-1 block w-full p-5 text-xl peer/phn"
 					/>
-				</div>
-				<div>
 					<label
 						htmlFor="password"
-						className="block text-sm font-medium text-gray-300"
+						className="block text-sm font-medium opacity-80 mb-0"
 					>
 						Password
 					</label>
-					<input
+					<Input
 						type="password"
 						name="password"
+						placeholder="Password"
 						id="password"
 						required
-						className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+						className="mt-1 block w-full p-5 text-xl peer/pwd mb-0"
 					/>
-				</div>
-				<button
-					type="submit"
-					className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
-				>
-					Create Account
-				</button>
-			</form>
-			<Link
-				to="/login"
-				className="block mt-4 text-sm text-blue-400 hover:underline"
-			>
-				Already have an account? Log in
-			</Link>
+					<Button
+						type="submit"
+						size="lg"
+						className="w-full mt-4 text-lg py-5 peer-placeholder-shown/uid:opacity-50 peer-placeholder-shown/nam:opacity-50 peer-placeholder-shown/phn:opacity-50 peer-placeholder-shown/pwd:opacity-50"
+					>
+						Create Account
+					</Button>
+				</form>
+				<Button variant="link" size="sm" className="py-5" asChild>
+					<Link to="/login">Already have an account? Log in</Link>
+				</Button>
+			</div>
 		</div>
 	);
 }
