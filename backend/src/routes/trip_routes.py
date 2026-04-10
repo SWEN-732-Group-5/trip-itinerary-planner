@@ -1,11 +1,7 @@
 from datetime import datetime
 
-from typing_extensions import Optional
-
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import ValidationError
-
-from src.routes.auth import get_user_from_session_token
 from src.db import get_db_client
 from src.db_types import (
     BookingSummaryItem,
@@ -24,8 +20,10 @@ from src.request_types import (
     UpdateOrganizersRequest,
     UpdateTripRequest,
 )
+from src.routes.auth import authenticated_user
 
 trip_router = APIRouter(prefix="/api/trips", tags=["trips"])
+
 
 @trip_router.get(
     "/{trip_id}/booking-summary/{user_id}", response_model=list[BookingSummaryItem]
@@ -49,13 +47,15 @@ async def get_booking_summary(trip_id: str, user_id: str):
 
 
 @trip_router.get("/{trip_id}", response_model=Trip, status_code=200)
-async def get_trip(trip_id: str, session_token: Optional[str] = Header(None)):
-    user = await get_user_from_session_token(session_token)
+async def get_trip(trip_id: str, user: dict = Depends(authenticated_user)):
     db = get_db_client().trip_itinerary_planner
     trip = await db.trips.find_one({"trip_id": trip_id})
     if trip is None:
         raise HTTPException(status_code=404, detail=f"Trip {trip_id} not found")
-    if user["user_id"] not in trip["organizers"] and user["user_id"] not in trip["guests"]:
+    if (
+        user["user_id"] not in trip["organizers"]
+        and user["user_id"] not in trip["guests"]
+    ):
         raise HTTPException(
             status_code=403, detail="Only trip members can view trip details"
         )
@@ -77,8 +77,9 @@ async def get_trip_summary(trip_id: str):
 
 
 @trip_router.post("", response_model=Trip, status_code=201)
-async def create_trip(creation_request: CreateTripRequest, session_token: Optional[str] = Header(None)):
-    user = await get_user_from_session_token(session_token)
+async def create_trip(
+    creation_request: CreateTripRequest, user: dict = Depends(authenticated_user)
+):
     db = get_db_client().trip_itinerary_planner
     trips = await db.trips.find().to_list()
     next_id = len(trips) + 1
@@ -98,11 +99,10 @@ async def create_trip(creation_request: CreateTripRequest, session_token: Option
 
 @trip_router.put("/{trip_id}", response_model=Trip)
 async def update_trip(
-    trip_id: str, 
+    trip_id: str,
     update_request: UpdateTripRequest,
-    session_token: Optional[str] = Header(None)
+    user: dict = Depends(authenticated_user),
 ):
-    user = await get_user_from_session_token(session_token)
     db = get_db_client().trip_itinerary_planner
     trip: Trip | None = await db.trips.find_one({"trip_id": trip_id})
     if trip is None:
@@ -110,16 +110,16 @@ async def update_trip(
             status_code=404, detail=f"Could not find trip {trip_id} to update"
         )
     if user["user_id"] not in trip["organizers"]:
-        raise HTTPException(
-            status_code=403, detail="Only organizers can update a trip"
-        )
+        raise HTTPException(status_code=403, detail="Only organizers can update a trip")
     result = await db.trips.update_one(
         {"trip_id": trip_id},
-        {"$set": {
-            "trip_name": update_request.trip_name,
-            "start_time": update_request.start_time,
-            "end_time": update_request.end_time,
-        }}
+        {
+            "$set": {
+                "trip_name": update_request.trip_name,
+                "start_time": update_request.start_time,
+                "end_time": update_request.end_time,
+            }
+        },
     )
     if result.modified_count < 1:
         raise HTTPException(
@@ -130,11 +130,10 @@ async def update_trip(
 
 @trip_router.put("/{trip_id}/organizers", response_model=Trip)
 async def update_organizers(
-    trip_id: str, 
-    update_request: UpdateOrganizersRequest, 
-    session_token: Optional[str] = Header(None)
+    trip_id: str,
+    update_request: UpdateOrganizersRequest,
+    user: dict = Depends(authenticated_user),
 ):
-    user = await get_user_from_session_token(session_token)
     db = get_db_client().trip_itinerary_planner
     trip: Trip | None = await db.trips.find_one({"trip_id": trip_id})
     if trip is None:
@@ -156,18 +155,19 @@ async def update_organizers(
     new_organizers = (set(trip["organizers"]) - removing_organizers) | adding_organizers
     new_guests = (set(trip["guests"]) - adding_organizers) | removing_organizers
     result = await db.trips.update_one(
-        {"trip_id": trip["trip_id"]}, {"$set": {"organizers": [*new_organizers], "guests": [*new_guests]}}
+        {"trip_id": trip["trip_id"]},
+        {"$set": {"organizers": [*new_organizers], "guests": [*new_guests]}},
     )
     if result.modified_count < 1:
         raise HTTPException(
-            status_code=500, detail=f"Found trip {trip["trip_id"]} but failed to update it"
+            status_code=500,
+            detail=f"Found trip {trip['trip_id']} but failed to update it",
         )
     return result.raw_result
 
 
 @trip_router.delete("/{trip_id}", status_code=204)
-async def delete_trip(trip_id: str, session_token: Optional[str] = Header(None)):
-    user = await get_user_from_session_token(session_token)
+async def delete_trip(trip_id: str, user: dict = Depends(authenticated_user)):
     db = get_db_client().trip_itinerary_planner
     trip = await db.trips.find_one({"trip_id": trip_id})
     if trip is None:
@@ -175,25 +175,20 @@ async def delete_trip(trip_id: str, session_token: Optional[str] = Header(None))
             status_code=404, detail=f"Could not find trip {trip_id} to delete"
         )
     if user["user_id"] not in trip["organizers"]:
-        raise HTTPException(
-            status_code=403, detail="Only organizers can delete a trip"
-        )
+        raise HTTPException(status_code=403, detail="Only organizers can delete a trip")
     result = await db.trips.delete_one({"trip_id": trip_id})
     if result.deleted_count < 1:
-        raise HTTPException(
-            status_code=404, detail=f"Failed to delete trip {trip_id}"
-        )
+        raise HTTPException(status_code=404, detail=f"Failed to delete trip {trip_id}")
     result = await db.trip_invitations.delete_many({"trip_id": trip_id})
     return None
 
 
 @trip_router.post("/{trip_id}/event", response_model=Trip, status_code=201)
 async def create_event(
-    trip_id: str, 
+    trip_id: str,
     creation_request: CreateEventRequest,
-    session_token: Optional[str] = Header(None)
+    user: dict = Depends(authenticated_user),
 ):
-    user = await get_user_from_session_token(session_token)
     db = get_db_client().trip_itinerary_planner
     trip = await db.trips.find_one({"trip_id": trip_id})
     if trip is None:
@@ -265,12 +260,11 @@ async def create_event(
 
 @trip_router.put("/{trip_id}/event/{event_id}", response_model=Trip)
 async def update_event(
-    trip_id: str, 
-    event_id: str, 
+    trip_id: str,
+    event_id: str,
     update_request: UpdateEventRequest,
-    session_token: Optional[str] = Header(None)
+    user: dict = Depends(authenticated_user),
 ):
-    user = await get_user_from_session_token(session_token)
     db = get_db_client().trip_itinerary_planner
     trip = await db.trips.find_one({"trip_id": trip_id})
     if trip is None:
@@ -286,7 +280,8 @@ async def update_event(
     ]
     if len(matching_events) < 1:
         raise HTTPException(
-            status_code=404, detail=f"Could not find event {event_id} in trip {trip['trip_id']}"
+            status_code=404,
+            detail=f"Could not find event {event_id} in trip {trip['trip_id']}",
         )
     if update_request.event_type not in EventType:
         raise HTTPException(
@@ -302,28 +297,30 @@ async def update_event(
 
     result = await db.trips.update_one(
         {"trip_id": trip["trip_id"]},
-        {"$set": {
-            "events": [
-                updated_event if event["event_id"] == event_id else event
-                for event in trip["events"]
-            ]
-        }},
+        {
+            "$set": {
+                "events": [
+                    updated_event if event["event_id"] == event_id else event
+                    for event in trip["events"]
+                ]
+            }
+        },
     )
     if result.modified_count < 1:
         raise HTTPException(
-            status_code=500, detail=f"Found trip {trip["trip_id"]} but failed to update it"
+            status_code=500,
+            detail=f"Found trip {trip['trip_id']} but failed to update it",
         )
     return result.raw_result
 
 
 @trip_router.put("/{trip_id}/event/{event_id}/location", response_model=Trip)
 async def update_event_location(
-    trip_id: str, 
-    event_id: str, 
-    update_request: UpdateEventLocationRequest, 
-    session_token: Optional[str] = Header(None)
+    trip_id: str,
+    event_id: str,
+    update_request: UpdateEventLocationRequest,
+    user: dict = Depends(authenticated_user),
 ):
-    user = await get_user_from_session_token(session_token)
     db = get_db_client().trip_itinerary_planner
     trip = await db.trips.find_one({"trip_id": trip_id})
     if trip is None:
@@ -339,7 +336,8 @@ async def update_event_location(
     ]
     if len(matching_events) < 1:
         raise HTTPException(
-            status_code=404, detail=f"Could not find event {event_id} in trip {trip["trip_id"]}"
+            status_code=404,
+            detail=f"Could not find event {event_id} in trip {trip['trip_id']}",
         )
     if update_request.location_type not in EventType:
         raise HTTPException(
@@ -361,27 +359,27 @@ async def update_event_location(
         updated_event["location"] = location
     result = await db.trips.update_one(
         {"trip_id": trip["trip_id"]},
-        {"$set": {
-            "events": [
-                updated_event if event["event_id"] == event_id else event
-                for event in trip["events"]
-            ]
-        }},
+        {
+            "$set": {
+                "events": [
+                    updated_event if event["event_id"] == event_id else event
+                    for event in trip["events"]
+                ]
+            }
+        },
     )
     if result.modified_count < 1:
         raise HTTPException(
-            status_code=500, detail=f"Found trip {trip["trip_id"]} but failed to update it"
+            status_code=500,
+            detail=f"Found trip {trip['trip_id']} but failed to update it",
         )
     return result.raw_result
 
 
 @trip_router.delete("/{trip_id}/event/{event_id}")
 async def delete_event(
-    trip_id: str, 
-    event_id: str, 
-    session_token: Optional[str] = Header(None)
+    trip_id: str, event_id: str, user: dict = Depends(authenticated_user)
 ):
-    user = await get_user_from_session_token(session_token)
     db = get_db_client().trip_itinerary_planner
     trip = await db.trips.find_one({"trip_id": trip_id})
     if trip is None:
@@ -394,30 +392,33 @@ async def delete_event(
         )
     if event_id not in [e["event_id"] for e in trip["events"]]:
         raise HTTPException(
-            status_code=404, detail=f"Could not find event {event_id} in trip {trip["trip_id"]}"
+            status_code=404,
+            detail=f"Could not find event {event_id} in trip {trip['trip_id']}",
         )
     result = await db.trips.update_one(
         {"trip_id": trip_id},
-        {"$set": {
-            "events": [
-                event for event in trip["events"] if event["event_id"] != event_id
-            ]
-        }},
+        {
+            "$set": {
+                "events": [
+                    event for event in trip["events"] if event["event_id"] != event_id
+                ]
+            }
+        },
     )
     if result.modified_count < 1:
         raise HTTPException(
-            status_code=500, detail=f"Found trip {trip["trip_id"]} but failed to update it"
+            status_code=500,
+            detail=f"Found trip {trip['trip_id']} but failed to update it",
         )
     return result.raw_result
 
 
 @trip_router.post("/{trip_id}/invite", response_model=TripInvitation, status_code=201)
 async def create_trip_invitation(
-    trip_id: str, 
-    creation_request: CreateTripInvitationRequest, 
-    session_token: Optional[str] = Header(None)
+    trip_id: str,
+    creation_request: CreateTripInvitationRequest,
+    user: dict = Depends(authenticated_user),
 ):
-    user = await get_user_from_session_token(session_token)
     db = get_db_client().trip_itinerary_planner
     trip = await db.trips.find_one({"trip_id": trip_id})
     if trip is None:
@@ -442,14 +443,16 @@ async def create_trip_invitation(
     return invitation
 
 
-@trip_router.get("/{trip_id}/invitations", response_model=list[TripInvitation], status_code=200)
-async def get_trip_invitations(trip_id: str, session_token: Optional[str] = Header(None)):
-    user = await get_user_from_session_token(session_token)
+@trip_router.get(
+    "/{trip_id}/invitations", response_model=list[TripInvitation], status_code=200
+)
+async def get_trip_invitations(trip_id: str, user: dict = Depends(authenticated_user)):
     db = get_db_client().trip_itinerary_planner
     trip = await db.trips.find_one({"trip_id": trip_id})
     if trip is None:
         raise HTTPException(
-            status_code=404, detail=f"Could not find trip {trip_id} to get invitations for"
+            status_code=404,
+            detail=f"Could not find trip {trip_id} to get invitations for",
         )
     if user["user_id"] not in trip["organizers"]:
         raise HTTPException(
@@ -462,7 +465,9 @@ async def get_trip_invitations(trip_id: str, session_token: Optional[str] = Head
     return invitations
 
 
-@trip_router.get("/invitation/{invitation_id}", response_model=TripInvitation, status_code=200)
+@trip_router.get(
+    "/invitation/{invitation_id}", response_model=TripInvitation, status_code=200
+)
 async def get_trip_invitation(invitation_id: str):
     db = get_db_client().trip_itinerary_planner
     invitation = await db.trip_invitations.find_one({"invitation_id": invitation_id})
@@ -475,10 +480,8 @@ async def get_trip_invitation(invitation_id: str):
 
 @trip_router.put("/invitation/{invitation_id}/accept", status_code=200)
 async def accept_trip_invitation(
-    invitation_id: str, 
-    session_token: Optional[str] = Header(None)
+    invitation_id: str, user: dict = Depends(authenticated_user)
 ):
-    user = await get_user_from_session_token(session_token)
     db = get_db_client().trip_itinerary_planner
     invitation = await db.trip_invitations.find_one({"invitation_id": invitation_id})
     if invitation is None:
@@ -487,20 +490,24 @@ async def accept_trip_invitation(
         )
     if invitation["expiry_time"] < datetime.now():
         raise HTTPException(
-            status_code=400, detail=f"Invitation {invitation_id} has expired and can no longer be accepted"
+            status_code=400,
+            detail=f"Invitation {invitation_id} has expired and can no longer be accepted",
         )
     if invitation["limit_uses"] <= 0:
         raise HTTPException(
-            status_code=400, detail=f"Invitation {invitation_id} has already been used the maximum number of times"
+            status_code=400,
+            detail=f"Invitation {invitation_id} has already been used the maximum number of times",
         )
     trip = await db.trips.find_one({"trip_id": invitation["trip_id"]})
     if trip is None:
         raise HTTPException(
-            status_code=404, detail=f"Could not find trip {invitation["trip_id"]} to accept invitation for"
+            status_code=404,
+            detail=f"Could not find trip {invitation['trip_id']} to accept invitation for",
         )
     if user["user_id"] in trip["guests"] or user["user_id"] in trip["organizers"]:
         raise HTTPException(
-            status_code=400, detail=f"User {user['user_id']} is already a member of trip {trip["trip_id"]}"
+            status_code=400,
+            detail=f"User {user['user_id']} is already a member of trip {trip['trip_id']}",
         )
     if invitation["is_organizer"]:
         new_organizers = trip["organizers"] + [user["user_id"]]
@@ -510,48 +517,54 @@ async def accept_trip_invitation(
         new_guests = trip["guests"] + [user["user_id"]]
     result = await db.trips.update_one(
         {"trip_id": trip["trip_id"]},
-        {"$set": {
-            "organizers": new_organizers,
-            "guests": new_guests,
-        }},
+        {
+            "$set": {
+                "organizers": new_organizers,
+                "guests": new_guests,
+            }
+        },
     )
     if result.modified_count < 1:
         raise HTTPException(
-            status_code=500, detail=f"Found trip {trip["trip_id"]} but failed to update it with new guest"
+            status_code=500,
+            detail=f"Found trip {trip['trip_id']} but failed to update it with new guest",
         )
     result = await db.trip_invitations.update_one(
         {"invitation_id": invitation_id, "trip_id": trip["trip_id"]},
-        {"$inc": {"limit_uses": -1}}
+        {"$inc": {"limit_uses": -1}},
     )
     if result.modified_count < 1:
         raise HTTPException(
-            status_code=500, detail=f"Found invitation {invitation_id} but failed to update its remaining uses"
+            status_code=500,
+            detail=f"Found invitation {invitation_id} but failed to update its remaining uses",
         )
     result = await db.trips.find_one({"trip_id": trip["trip_id"]})
     if result is None:
         raise HTTPException(
-            status_code=500, detail=f"Found trip {trip["trip_id"]} but failed to retrieve it after update"
+            status_code=500,
+            detail=f"Found trip {trip['trip_id']} but failed to retrieve it after update",
         )
     return {"trip": Trip.model_validate(result)}
 
 
 @trip_router.delete("/{trip_id}/invite/{invitation_id}", status_code=204)
 async def delete_trip_invitation(
-    trip_id: str, 
-    invitation_id: str, 
-    session_token: Optional[str] = Header(None)
+    trip_id: str, invitation_id: str, user: dict = Depends(authenticated_user)
 ):
-    user = await get_user_from_session_token(session_token)
     db = get_db_client().trip_itinerary_planner
-    invitation = await db.trip_invitations.find_one({"_id": invitation_id, "trip_id": trip_id})
+    invitation = await db.trip_invitations.find_one(
+        {"_id": invitation_id, "trip_id": trip_id}
+    )
     if invitation is None:
         raise HTTPException(
-            status_code=404, detail=f"Could not find invitation {invitation_id} for trip {trip_id}"
+            status_code=404,
+            detail=f"Could not find invitation {invitation_id} for trip {trip_id}",
         )
     trip = await db.trips.find_one({"trip_id": trip_id})
     if trip is None:
         raise HTTPException(
-            status_code=404, detail=f"Could not find trip {trip_id} to delete invitation from"
+            status_code=404,
+            detail=f"Could not find trip {trip_id} to delete invitation from",
         )
     if user["user_id"] not in trip["organizers"]:
         raise HTTPException(
@@ -560,28 +573,26 @@ async def delete_trip_invitation(
     result = await db.trip_invitations.delete_one({"_id": invitation["_id"]})
     if result.deleted_count < 1:
         raise HTTPException(
-            status_code=500, detail=f"Found invitation {invitation_id} but failed to delete it"
+            status_code=500,
+            detail=f"Found invitation {invitation_id} but failed to delete it",
         )
     return None
 
 
 @trip_router.put("/{trip_id}/leave-trip", status_code=200)
-async def leave_trip(
-    trip_id: str,
-    session_token: Optional[str] = Header(None)
-):
-    user = await get_user_from_session_token(session_token)
+async def leave_trip(trip_id: str, user: dict = Depends(authenticated_user)):
     db = get_db_client().trip_itinerary_planner
     trip = await db.trips.find_one({"trip_id": trip_id})
     if trip is None:
-        raise HTTPException(
-            status_code=404, detail=f"Could not find trip {trip_id}"
-        )
-    if user["user_id"] not in trip["organizers"] and user["user_id"] not in trip["guests"]:
-        raise HTTPException(
-            status_code=403, detail="Not a member of this trip"
-        )
-    new_organizers = [organizer for organizer in trip["organizers"] if organizer != user["user_id"]]
+        raise HTTPException(status_code=404, detail=f"Could not find trip {trip_id}")
+    if (
+        user["user_id"] not in trip["organizers"]
+        and user["user_id"] not in trip["guests"]
+    ):
+        raise HTTPException(status_code=403, detail="Not a member of this trip")
+    new_organizers = [
+        organizer for organizer in trip["organizers"] if organizer != user["user_id"]
+    ]
     new_guests = [guest for guest in trip["guests"] if guest != user["user_id"]]
     result = await db.trips.update_one(
         {"trip_id": trip_id},
@@ -592,29 +603,27 @@ async def leave_trip(
     )
     if result.modified_count < 1:
         raise HTTPException(
-            status_code=500, detail=f"Found trip {trip["trip_id"]} but failed to update it"
+            status_code=500,
+            detail=f"Found trip {trip['trip_id']} but failed to update it",
         )
     return {"trip": Trip.model_validate(trip)}
 
 
 @trip_router.put("/{trip_id}/remove-user/{user_id}", status_code=200)
 async def remove_user_from_trip(
-    trip_id: str, 
-    user_id: str, 
-    session_token: Optional[str] = Header(None)
+    trip_id: str, user_id: str, user: dict = Depends(authenticated_user)
 ):
-    user = await get_user_from_session_token(session_token)
     db = get_db_client().trip_itinerary_planner
     trip = await db.trips.find_one({"trip_id": trip_id})
     if trip is None:
-        raise HTTPException(
-            status_code=404, detail=f"Could not find trip {trip_id}"
-        )
+        raise HTTPException(status_code=404, detail=f"Could not find trip {trip_id}")
     if user["user_id"] not in trip["organizers"]:
         raise HTTPException(
             status_code=403, detail="Only organizers can remove users from a trip"
         )
-    new_organizers = [organizer for organizer in trip["organizers"] if organizer != user_id]
+    new_organizers = [
+        organizer for organizer in trip["organizers"] if organizer != user_id
+    ]
     new_guests = [guest for guest in trip["guests"] if guest != user_id]
     result = await db.trips.update_one(
         {"trip_id": trip_id},
@@ -625,6 +634,7 @@ async def remove_user_from_trip(
     )
     if result.modified_count < 1:
         raise HTTPException(
-            status_code=500, detail=f"Found trip {trip["trip_id"]} but failed to update it"
+            status_code=500,
+            detail=f"Found trip {trip['trip_id']} but failed to update it",
         )
     return {"trip": Trip.model_validate(trip)}
