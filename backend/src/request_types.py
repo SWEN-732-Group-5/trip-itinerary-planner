@@ -16,7 +16,7 @@ class UpdateTripRequest(BaseModel):
     end_time: datetime
 
 class UpdateOrganizersRequest(BaseModel):
-    users: dict[str, bool]
+    is_organizer: dict[str, bool]
 
 class CreateEventRequest(BaseModel):
     event_name: str

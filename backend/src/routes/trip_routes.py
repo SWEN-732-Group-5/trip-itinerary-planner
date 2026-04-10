@@ -14,7 +14,6 @@ from src.db_types import (
     Trip,
     TripEvent,
     TripInvitation,
-    User,
 )
 from src.request_types import (
     CreateEventRequest,
@@ -62,7 +61,7 @@ async def get_trip(trip_id: str, session_token: Optional[str] = Header(None)):
     trip = await db.trips.find_one({"trip_id": trip_id})
     if trip is None:
         raise HTTPException(status_code=404, detail=f"Trip {trip_id} not found")
-    if not user["user_id"] in trip["organizers"] and not user["user_id"] in trip["guests"]:
+    if user["user_id"] not in trip["organizers"] and user["user_id"] not in trip["guests"]:
         raise HTTPException(
             status_code=403, detail="Only trip members can view trip details"
         )
@@ -116,7 +115,7 @@ async def update_trip(
         raise HTTPException(
             status_code=404, detail=f"Could not find trip {trip_id} to update"
         )
-    if not user["user_id"] in trip["organizers"]:
+    if user["user_id"] not in trip["organizers"]:
         raise HTTPException(
             status_code=403, detail="Only organizers can update a trip"
         )
@@ -148,18 +147,18 @@ async def update_organizers(
         raise HTTPException(
             status_code=404, detail=f"Could not find trip {trip_id} to update"
         )
-    if not user["user_id"] in trip["organizers"]:
+    if user["user_id"] not in trip["organizers"]:
         raise HTTPException(
             status_code=403, detail="Only organizers can modify trip organizers"
         )
     adding_organizers = set(
         [
             user_id
-            for user_id in update_request.users.keys()
-            if update_request.users[user_id] == True
+            for user_id in update_request.is_organizer.keys()
+            if update_request.is_organizer[user_id]
         ]
     )
-    removing_organizers = update_request.users.keys() - adding_organizers
+    removing_organizers = update_request.is_organizer.keys() - adding_organizers
     new_organizers = (set(trip["organizers"]) - removing_organizers) | adding_organizers
     new_guests = (set(trip["guests"]) - adding_organizers) | removing_organizers
     result = await db.trips.update_one(
@@ -181,7 +180,7 @@ async def delete_trip(trip_id: str, session_token: Optional[str] = Header(None))
         raise HTTPException(
             status_code=404, detail=f"Could not find trip {trip_id} to delete"
         )
-    if not user["user_id"] in trip["organizers"]:
+    if user["user_id"] not in trip["organizers"]:
         raise HTTPException(
             status_code=403, detail="Only organizers can delete a trip"
         )
@@ -207,7 +206,7 @@ async def create_event(
         raise HTTPException(
             status_code=404, detail=f"Could not find trip {trip_id} to add an event to"
         )
-    if not user["user_id"] in trip["organizers"]:
+    if user["user_id"] not in trip["organizers"]:
         raise HTTPException(
             status_code=403, detail="Only organizers can add events to a trip"
         )
@@ -284,7 +283,7 @@ async def update_event(
         raise HTTPException(
             status_code=404, detail=f"Could not find trip {trip_id} to update"
         )
-    if not user["user_id"] in trip["organizers"]:
+    if user["user_id"] not in trip["organizers"]:
         raise HTTPException(
             status_code=403, detail="Only organizers can edit events in a trip"
         )
@@ -337,9 +336,9 @@ async def update_event_location(
         raise HTTPException(
             status_code=404, detail=f"Could not find trip {trip_id} to update"
         )
-    if not user["user_id"] in trip["organizers"]:
+    if user["user_id"] not in trip["organizers"]:
         raise HTTPException(
-            status_code=403, detail=f"Only organizers can edit events in a trip"
+            status_code=403, detail="Only organizers can edit events in a trip"
         )
     matching_events = [
         e for e in filter(lambda event: event["event_id"] == event_id, trip["events"])
@@ -395,11 +394,11 @@ async def delete_event(
         raise HTTPException(
             status_code=404, detail=f"Could not find trip {trip_id} to update"
         )
-    if not user["user_id"] in trip["organizers"]:
+    if user["user_id"] not in trip["organizers"]:
         raise HTTPException(
-            status_code=403, detail=f"Only organizers can delete events from a trip"
+            status_code=403, detail="Only organizers can delete events from a trip"
         )
-    if not event_id in [e["event_id"] for e in trip["events"]]:
+    if event_id not in [e["event_id"] for e in trip["events"]]:
         raise HTTPException(
             status_code=404, detail=f"Could not find event {event_id} in trip {trip["trip_id"]}"
         )
@@ -433,7 +432,7 @@ async def create_trip_invitation(
         )
     if user["user_id"] not in trip["organizers"]:
         raise HTTPException(
-            status_code=403, detail=f"Only organizers can create invitations for a trip"
+            status_code=403, detail="Only organizers can create invitations for a trip"
         )
     all_invitations = await db.trip_invitations.find().to_list()
     next_id = len(all_invitations) + 1
@@ -460,7 +459,7 @@ async def get_trip_invitations(trip_id: str, session_token: Optional[str] = Head
         )
     if user["user_id"] not in trip["organizers"]:
         raise HTTPException(
-            status_code=403, detail=f"Only organizers can view invitations for a trip"
+            status_code=403, detail="Only organizers can view invitations for a trip"
         )
     invitations_cursor = db.trip_invitations.find({"trip_id": trip_id})
     invitations = []
@@ -562,7 +561,7 @@ async def delete_trip_invitation(
         )
     if user["user_id"] not in trip["organizers"]:
         raise HTTPException(
-            status_code=403, detail=f"Only organizers can delete invitations for a trip"
+            status_code=403, detail="Only organizers can delete invitations for a trip"
         )
     result = await db.trip_invitations.delete_one({"_id": invitation["_id"]})
     if result.deleted_count < 1:
@@ -619,7 +618,7 @@ async def remove_user_from_trip(
         )
     if user["user_id"] not in trip["organizers"]:
         raise HTTPException(
-            status_code=403, detail=f"Only organizers can remove users from a trip"
+            status_code=403, detail="Only organizers can remove users from a trip"
         )
     new_organizers = [organizer for organizer in trip["organizers"] if organizer != user_id]
     new_guests = [guest for guest in trip["guests"] if guest != user_id]
