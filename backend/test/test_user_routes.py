@@ -368,3 +368,107 @@ def test_delete_user_success_with_trips():
             assert response.status_code == 204
             # Verify update_many was called twice (for organizers and guests)
             assert trips_collection.update_many.call_count == 2
+
+
+# --- Tests for update_user ---
+
+def test_update_user_success():
+    """Test successful user update"""
+    user_data = make_user_dict("user1")
+    user_data["display_name"] = "Updated Name"
+    user_data["phone_number"] = "555-9999"
+    
+    users_collection = MagicMock()
+    users_collection.update_one = AsyncMock(return_value=make_update_result(1))
+    users_collection.find_one = AsyncMock(return_value=user_data)
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, \
+         patch("src.routes.user_routes.get_db_client") as mock_route_client_fn, \
+         patch("src.routes.user_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(users_collection)
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {
+            "user_id": "user1",
+            "display_name": "Updated Name",
+            "phone_number": "555-9999"
+        }
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.put(
+                "/api/user",
+                headers={"session_token": "fake_token"}
+            )
+            assert response.status_code == 200
+            data = response.json()
+            assert data["user_id"] == "user1"
+            assert data["display_name"] == "Updated Name"
+            assert data["phone_number"] == "555-9999"
+
+
+def test_update_user_not_found():
+    """Test update fails when user is not found (modified_count == 0)"""
+    users_collection = MagicMock()
+    users_collection.update_one = AsyncMock(return_value=make_update_result(0))
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, \
+         patch("src.routes.user_routes.get_db_client") as mock_route_client_fn, \
+         patch("src.routes.user_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(users_collection)
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {
+            "user_id": "user1",
+            "display_name": "Test User",
+            "phone_number": "555-1234"
+        }
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.put(
+                "/api/user",
+                headers={"session_token": "fake_token"}
+            )
+            assert response.status_code == 404
+            assert "Failed to update user" in response.json()["detail"]
+
+
+def test_update_user_validates_returned_object():
+    """Test that update_user properly validates and returns User model"""
+    user_data = make_user_dict("user1")
+    user_data["display_name"] = "New Display Name"
+    user_data["phone_number"] = "555-8888"
+    
+    users_collection = MagicMock()
+    users_collection.update_one = AsyncMock(return_value=make_update_result(1))
+    users_collection.find_one = AsyncMock(return_value=user_data)
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, \
+         patch("src.routes.user_routes.get_db_client") as mock_route_client_fn, \
+         patch("src.routes.user_routes.get_user_from_session_token") as mock_get_user:
+        mock_client = make_mock_db_client(users_collection)
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+        mock_get_user.return_value = {
+            "user_id": "user1",
+            "display_name": "New Display Name",
+            "phone_number": "555-8888"
+        }
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.put(
+                "/api/user",
+                headers={"session_token": "fake_token"}
+            )
+            assert response.status_code == 200
+            # Verify all User model fields are present
+            data = response.json()
+            assert "user_id" in data
+            assert "display_name" in data
+            assert "phone_number" in data
+            assert "password_hash" in data

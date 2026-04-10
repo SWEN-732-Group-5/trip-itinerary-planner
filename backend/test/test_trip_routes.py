@@ -192,6 +192,58 @@ def test_get_trip_not_found():
             assert response.json()["detail"] == "Trip trip999 not found"
 
 
+# --- Trip summary route tests ---
+
+def test_get_trip_summary_success():
+    """Test successful retrieval of trip summary"""
+    trip_summary = {
+        "trip_id": "trip1",
+        "trip_name": "Spring Break",
+        "trip_description": "A fun spring break getaway",
+        "start_time": "2025-03-01T08:00:00",
+        "end_time": "2025-03-07T20:00:00",
+        "organizers": ["user1"],
+        "guests": ["user2"],
+        "events": [],
+    }
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=trip_summary)
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.get("/api/trips/trip1/summary")
+            assert response.status_code == 200
+            data = response.json()
+            assert data["trip_name"] == "Spring Break"
+            assert data["trip_description"] == "A fun spring break getaway"
+            assert data["start_time"] == "2025-03-01T08:00:00"
+            assert data["end_time"] == "2025-03-07T20:00:00"
+
+
+def test_get_trip_summary_not_found():
+    """Test trip summary request when trip is not found"""
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=None)
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.get("/api/trips/nonexistent/summary")
+            assert response.status_code == 404
+            assert "not found" in response.json()["detail"]
+
+
 def test_create_trip_success():
     trips_collection = MagicMock()
     trips_collection.find.return_value = MagicMock(to_list=AsyncMock(return_value=[]))

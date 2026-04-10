@@ -60,6 +60,17 @@ async def get_user_trips(user_id: str, session_token: Optional[str] = Header(Non
     return {"trips": trips}
 
 
+@user_router.put("", response_model=User, status_code=200)
+async def update_user(session_token: Optional[str] = Header(None)):
+    user = await get_user_from_session_token(session_token)
+    db = get_db_client().trip_itinerary_planner
+    result = await db.users.update_one({"user_id": user["user_id"]}, {"$set": {"display_name": user["display_name"], "phone_number": user["phone_number"]}})
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail=f"Failed to update user with id {user['user_id']}")
+    updated_user = await db.users.find_one({"user_id": user["user_id"]})
+    return User.model_validate(updated_user)
+
+
 @user_router.delete("", status_code=204)
 async def delete_user(session_token: Optional[str] = Header(None)):
     user = await get_user_from_session_token(session_token)
