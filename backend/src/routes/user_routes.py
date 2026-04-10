@@ -15,7 +15,7 @@ from src.request_types import (
 )
 
 load_dotenv()
-salt = os.environ["HASH_SALT"].encode()
+salt = os.getenv("HASH_SALT", "placeholder_hash").encode()
 
 user_router = APIRouter(prefix="/api/user", tags=["users"])
 

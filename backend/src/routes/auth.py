@@ -8,7 +8,7 @@ from src.db import get_db_client
 from src.request_types import AuthenticateUserRequest
 
 load_dotenv()
-salt = os.environ["HASH_SALT"].encode()
+salt = os.getenv("HASH_SALT", "placeholder_hash").encode()
 
 auth_router = APIRouter(prefix="/api/auth", tags=["auth"])
 
