@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import z from 'zod';
-import { post, put } from './fetch';
+import { useAuthFetch } from './fetch';
 import { eventTypeEnum, tripSchema, type Trip } from './model';
 
 export async function get_trip_details(
@@ -29,12 +29,11 @@ export function useTrip(tripId?: string) {
 }
 
 export function useMutateTrip() {
+	const { post } = useAuthFetch();
 	const client = useQueryClient();
 	return useMutation({
 		mutationFn: async (updatedTrip: Partial<Trip>) => {
-			const response = await fetch(`/api/trips`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+			const response = await post(`/api/trips`, {
 				body: JSON.stringify(updatedTrip),
 			});
 			if (!response.ok) {
@@ -68,6 +67,7 @@ export const createEventInput = z.object({
 });
 export type CreateTripEventInput = z.infer<typeof createEventInput>;
 export function useCreateTripEvent({ trip_id }: { trip_id?: string }) {
+	const { post } = useAuthFetch();
 	const client = useQueryClient();
 	return useMutation({
 		mutationFn: async (data: CreateTripEventInput) => {
@@ -99,6 +99,7 @@ export const updateEventInput = z.object({
 export type UpdateEventInput = z.infer<typeof updateEventInput>;
 
 export function useMutateTripEvent({ trip_id }: { trip_id?: string }) {
+	const { put } = useAuthFetch();
 	const client = useQueryClient();
 	return useMutation({
 		mutationFn: async (data: UpdateEventInput) => {

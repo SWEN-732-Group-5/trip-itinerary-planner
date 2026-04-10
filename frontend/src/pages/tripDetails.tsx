@@ -38,16 +38,6 @@ function TripDetails() {
 	const { data: tripData, isLoading } = useTrip(id);
 	const { mutateAsync: updateTripEvent } = useCreateTripEvent({ trip_id: id });
 	const [open, setOpen] = useState(false);
-	const [form, setForm] = useState({
-		event_name: '',
-		event_description: '',
-		event_type: 'other',
-		location_name: '',
-		location_type: 'other',
-		location_coords: ['', ''],
-		start_time: '',
-		end_time: '',
-	});
 
 	if (isLoading) return <div className="p-6">Loading...</div>;
 	if (!tripData) return <div className="p-6">Trip not found</div>;
@@ -71,7 +61,6 @@ function TripDetails() {
 
 	return (
 		<div className="p-6 space-y-6">
-			{/* Header */}
 			<div>
 				<h1 className="text-3xl font-bold mb-2">{trip_name}</h1>
 				<p className="text-muted-foreground">
@@ -83,7 +72,6 @@ function TripDetails() {
 
 			<Separator />
 
-			{/* People */}
 			<Card>
 				<CardHeader>
 					<CardTitle>People</CardTitle>
@@ -132,7 +120,6 @@ function TripDetails() {
 									<div>
 										<Label>Name</Label>
 										<Input
-											id="event_name"
 											name="event_name"
 											defaultValue={DEFAULT_FORM_STATE.event_name}
 										/>
@@ -141,43 +128,31 @@ function TripDetails() {
 									<div>
 										<Label>Description</Label>
 										<Input
+											name="event_description"
 											defaultValue={DEFAULT_FORM_STATE.event_description}
 										/>
 									</div>
 
 									<div>
 										<Label>Location</Label>
-										<Input defaultValue={DEFAULT_FORM_STATE.location_name} />
+										<Input
+											name="location_name"
+											defaultValue={DEFAULT_FORM_STATE.location_name}
+										/>
 									</div>
 
 									<div className="flex gap-2">
 										<Input
 											placeholder="Lat"
 											type="number"
+											name="location_lat"
 											defaultValue={DEFAULT_COORDS[0]}
-											onChange={(e) =>
-												setForm({
-													...form,
-													location_coords: [
-														e.target.value,
-														form.location_coords[1],
-													],
-												})
-											}
 										/>
 										<Input
 											placeholder="Lng"
 											type="number"
+											name="location_lng"
 											defaultValue={DEFAULT_COORDS[1]}
-											onChange={(e) =>
-												setForm({
-													...form,
-													location_coords: [
-														form.location_coords[0],
-														e.target.value,
-													],
-												})
-											}
 										/>
 									</div>
 
@@ -185,7 +160,7 @@ function TripDetails() {
 										<Label>Start</Label>
 										<Input
 											type="datetime-local"
-											id="start_time"
+											name="start_time"
 											defaultValue={DEFAULT_DATE()}
 										/>
 									</div>
@@ -194,7 +169,7 @@ function TripDetails() {
 										<Label>End</Label>
 										<Input
 											type="datetime-local"
-											id="end_time"
+											name="end_time"
 											defaultValue={''}
 										/>
 									</div>

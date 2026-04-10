@@ -1,9 +1,7 @@
 import secrets
-import bcrypt
 from datetime import datetime, timedelta
 
 import bcrypt
-from dotenv import load_dotenv
 from fastapi import APIRouter, Header, HTTPException
 from src.db import get_db_client
 from src.request_types import AuthenticateUserRequest
