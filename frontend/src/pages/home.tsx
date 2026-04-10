@@ -1,8 +1,7 @@
-import { useSession } from '@/lib/auth/auth';
+import { LoggedIn, LoggedOut, LogoutButton } from '@/lib/auth/authSession';
 import { Link, useNavigate } from 'react-router';
 
 export default function Home() {
-	const { isLoggedIn } = useSession();
 	const navigate = useNavigate();
 	const navigateToTrip = (formData: FormData) => {
 		const tripId = formData.get('id');
@@ -18,11 +17,13 @@ export default function Home() {
 			<p className="mt-4 text-muted-foreground">
 				Plan your trips with ease and keep all your travel details in one place.
 			</p>
-			{!isLoggedIn ?
+			<LoggedOut>
 				<div className="mt-6">
 					<Link to="/login">login</Link>
 				</div>
-			:	<div className="bg-slate-600 p-4 w-fit">
+			</LoggedOut>
+			<LoggedIn>
+				<div className="bg-slate-600 p-4 w-fit">
 					<form action={navigateToTrip}>
 						<input
 							name="id"
@@ -32,7 +33,8 @@ export default function Home() {
 						<button type="submit">Go to trip</button>
 					</form>
 				</div>
-			}
+				<LogoutButton />
+			</LoggedIn>
 		</div>
 	);
 }
