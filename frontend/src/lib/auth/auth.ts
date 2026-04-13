@@ -99,16 +99,19 @@ const useRenewSession = (session: SessionContextType | undefined) => {
 			return userAuthResponse.parse(await response.json());
 		},
 	});
-	useAtTime(() => {
-		mutateAsync()
-			.then((newSession) => {
-				setSession?.(newSession);
-			})
-			.catch((error) => {
-				console.error('Failed to renew session:', error);
-				setSession?.();
-			});
-	}, expiry_time ?? null);
+	useAtTime(
+		() => {
+			mutateAsync()
+				.then((newSession) => {
+					setSession?.(newSession);
+				})
+				.catch((error) => {
+					console.error('Failed to renew session:', error);
+					setSession?.();
+				});
+		},
+		expiry_time ? new Date(expiry_time.getTime() - 60 * 1000) : null,
+	);
 };
 
 export type SessionActions = {
