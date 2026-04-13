@@ -6,6 +6,12 @@ export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }
 
+/**
+ * Trigger a callback function at a specific target time. If the target time is in the past, the callback will be triggered immediately.
+ * null targetTime will disable the timer.
+ * @param callback The function to be called at the target time
+ * @param targetTime The time at which to trigger the callback. If null, the timer is disabled.
+ */
 export function useAtTime(callback: () => void, targetTime: Date | null) {
 	const savedCallback = useRef(callback);
 
