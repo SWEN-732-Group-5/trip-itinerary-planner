@@ -28,7 +28,22 @@ async def authenticate_user(request: AuthenticateUserRequest):
             "expiry_time": expiry_time,
         }
     )
-    return {"session_token": session_token}
+    return {"session_token": session_token, "expiry_time": expiry_time}
+
+
+@auth_router.post("/renew", status_code=200)
+async def refresh_session(session_token: str = Header(...)):
+    db = get_db_client().trip_itinerary_planner
+    session = await db.user_sessions.find_one({"session_token": session_token})
+    if session is None or session["expiry_time"] < datetime.now():
+        raise HTTPException(status_code=401, detail="Invalid or expired session token")
+    new_session_token = secrets.token_urlsafe(32)
+    new_expiry_time = datetime.now() + timedelta(minutes=30)
+    await db.user_sessions.update_one(
+        {"session_token": session_token},
+        {"$set": {"session_token": new_session_token, "expiry_time": new_expiry_time}},
+    )
+    return {"session_token": new_session_token, "expiry_time": new_expiry_time}
 
 
 async def authenticated_user(session_token: str | None = Header(None)):

@@ -39,7 +39,7 @@ type SessionKey = string | undefined;
 export async function authPost(
 	endpoint: string,
 	session: SessionKey,
-	payload: FetchPayload,
+	payload?: FetchPayload,
 ) {
 	if (!session) {
 		throw new Error('No session available for authenticated request');
@@ -71,7 +71,7 @@ export async function authGet(
 export async function authPut(
 	endpoint: string,
 	session: SessionKey,
-	payload: FetchPayload,
+	payload?: FetchPayload,
 ) {
 	if (!session) {
 		throw new Error('No session available for authenticated request');
