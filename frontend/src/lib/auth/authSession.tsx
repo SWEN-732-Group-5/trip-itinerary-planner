@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import {
 	SessionContext,
+	useRenewSession,
 	useSession,
 	type SessionObject,
 } from '@/lib/auth/auth';
@@ -16,9 +17,10 @@ function SessionProvider({ children }: { children: React.ReactNode }) {
 		session?.expiry_time && typeof session.expiry_time == 'string' ?
 			new Date(session?.expiry_time)
 		:	undefined;
-
+	const context = { session_token, expiry_time, setSession };
+	useRenewSession(context);
 	return (
-		<SessionContext.Provider value={{ session_token, expiry_time, setSession }}>
+		<SessionContext.Provider value={context}>
 			{children}
 		</SessionContext.Provider>
 	);

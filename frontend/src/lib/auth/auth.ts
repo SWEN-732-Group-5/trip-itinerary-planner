@@ -1,6 +1,6 @@
 import { authPost, post } from '@/api/fetch';
 import { useMutation } from '@tanstack/react-query';
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useMemo, useRef } from 'react';
 import z from 'zod';
 import { useAtTime } from '../utils';
 
@@ -88,8 +88,14 @@ export const useSignup = () => {
 		},
 	});
 };
-const useRenewSession = (session: SessionContextType | undefined) => {
+export const useRenewSession = (session: SessionContextType | undefined) => {
 	const { setSession, expiry_time, session_token } = session ?? {};
+	const lastRenewedExpiryRef = useRef<number | null>(null);
+	const expiryTimeMs = expiry_time?.getTime();
+	const renewAt = useMemo(
+		() => (expiryTimeMs ? new Date(expiryTimeMs - 60 * 1000) : null),
+		[expiryTimeMs],
+	);
 	const { mutateAsync } = useMutation({
 		mutationFn: async () => {
 			if (!session_token)
@@ -99,19 +105,22 @@ const useRenewSession = (session: SessionContextType | undefined) => {
 			return userAuthResponse.parse(await response.json());
 		},
 	});
-	useAtTime(
-		() => {
-			mutateAsync()
-				.then((newSession) => {
-					setSession?.(newSession);
-				})
-				.catch((error) => {
-					console.error('Failed to renew session:', error);
-					setSession?.();
-				});
-		},
-		expiry_time ? new Date(expiry_time.getTime() - 60 * 1000) : null,
-	);
+	useAtTime(() => {
+		const expiryMs = expiryTimeMs ?? null;
+		if (expiryMs == null) return;
+		if (lastRenewedExpiryRef.current === expiryMs) return;
+		lastRenewedExpiryRef.current = expiryMs;
+
+		mutateAsync()
+			.then((newSession) => {
+				setSession?.(newSession);
+			})
+			.catch((error) => {
+				console.error('Failed to renew session:', error);
+				lastRenewedExpiryRef.current = null;
+				setSession?.();
+			});
+	}, renewAt);
 };
 
 export type SessionActions = {
@@ -129,7 +138,6 @@ export const useSession = (): SessionContextObject => {
 	const context = useContext(SessionContext);
 	const { mutateAsync: login } = useLogin();
 	const { mutateAsync: signup } = useSignup();
-	useRenewSession(context);
 	if (!context) {
 		throw new Error('useSession must be used within SessionProvider');
 	}
