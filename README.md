@@ -1,5 +1,6 @@
 
 # Trip Itinerary Planner
+[![codecov](https://codecov.io/gh/SWEN-732-Group-5/trip-itinerary-planner/graph/badge.svg?token=R7EDDD69AC)](https://codecov.io/gh/SWEN-732-Group-5/trip-itinerary-planner)
 
 A project for planning and organizing trip itineraries.
 
