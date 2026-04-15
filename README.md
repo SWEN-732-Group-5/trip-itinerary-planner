@@ -51,4 +51,4 @@ Python, FastAPI, PyTest, MongoDB, MinIO, React, Vite, Zod, react-hook-form, Tail
 If you want to propose code changes, please open a PR. Due to this being a college project, I would not guarantee a response.
 
 ## Support
-We do not offer support. This project comes with no support. If you would like to bring an issue to our attention please open an issue on GitHub. Due to this being a college project, we may not get back to you.
+This project comes with no support. If you would like to bring an issue to our attention please open an issue on GitHub. Due to this being a college project, we may not get back to you.
