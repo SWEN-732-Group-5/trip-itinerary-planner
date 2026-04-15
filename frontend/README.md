@@ -6,7 +6,7 @@ Please view the main README before exploring here
 ## Installation
 
 ### Required
-- [Node.JS]([https://docs.astral.sh/uv/](https://nodejs.org/en))
+- [Node.JS](https://nodejs.org/en)
 - [pnpm](https://pnpm.io/)
 
 ## Available Scripts
