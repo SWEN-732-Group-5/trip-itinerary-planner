@@ -43,3 +43,12 @@ pnpm install
 ```
 
 See [backend](./backend/README.md#Installation) for more required dependencies and setups.
+
+## Technologies Used
+Python, FastAPI, PyTest, MongoDB, MinIO, React, Vite, Zod, react-hook-form, TailwindCSS, Shadcn UI
+
+## Contributing
+If you want to propose code changes, please open a PR. Due to this being a college project, I would not guarantee a response.
+
+## Support
+We do not offer support. This project comes with no support. If you would like to bring an issue to our attention please open an issue on GitHub. Due to this being a college project, we may not get back to you.
