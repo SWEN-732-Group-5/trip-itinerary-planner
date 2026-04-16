@@ -1,5 +1,6 @@
 
 # Trip Itinerary Planner
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![codecov](https://codecov.io/gh/SWEN-732-Group-5/trip-itinerary-planner/graph/badge.svg?token=R7EDDD69AC)](https://codecov.io/gh/SWEN-732-Group-5/trip-itinerary-planner)
 
 A project for planning and organizing trip itineraries.
 
@@ -42,3 +43,12 @@ pnpm install
 ```
 
 See [backend](./backend/README.md#Installation) for more required dependencies and setups.
+
+## Technologies Used
+Python, FastAPI, PyTest, MongoDB, MinIO, React, Vite, Zod, react-hook-form, TailwindCSS, Shadcn UI
+
+## Contributing
+If you want to propose code changes, please open a PR. Due to this being a college project, I would not guarantee a response.
+
+## Support
+This project comes with no support. If you would like to bring an issue to our attention please open an issue on GitHub. Due to this being a college project, we may not get back to you.
