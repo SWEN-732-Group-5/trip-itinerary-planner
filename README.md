@@ -1,6 +1,6 @@
 
 # Trip Itinerary Planner
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![codecov](https://codecov.io/gh/SWEN-732-Group-5/trip-itinerary-planner/graph/badge.svg?token=R7EDDD69AC)](https://codecov.io/gh/SWEN-732-Group-5/trip-itinerary-planner)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![codecov](https://codecov.io/gh/SWEN-732-Group-5/trip-itinerary-planner/graph/badge.svg?token=R7EDDD69AC)](https://codecov.io/gh/SWEN-732-Group-5/trip-itinerary-planner) [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=SWEN-732-Group-5_trip-itinerary-planner&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=SWEN-732-Group-5_trip-itinerary-planner)
 
 A project for planning and organizing trip itineraries.
 
