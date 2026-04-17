@@ -15,6 +15,7 @@ dependencies = [
     "pytest>=9.0.2",
     "pytest-cov>=7.1.0",
     "python-dotenv>=1.2.2",
+    "python-multipart>=0.0.26",
     "uvicorn>=0.42.0",
 ]
 [tool.setuptools]

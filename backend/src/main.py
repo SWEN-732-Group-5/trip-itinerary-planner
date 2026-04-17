@@ -2,7 +2,7 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from src.db import get_db_client, get_mongodb_url
+from src.db import init_collections, init_state
 from src.routes.auth import auth_router
 from src.routes.file import file_router
 from src.routes.trip_routes import trip_router
@@ -21,35 +21,8 @@ def config_logger(name) -> logging.Logger:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    url = get_mongodb_url()
-    app.state.logger = config_logger("main")
-    app.state.logger.info(f"Connecting to MongoDB at {url}")
-    app.state.client = get_db_client()
-    app.state.db = app.state.client.trip_itinerary_planner
-    app.state.bookings_collection = app.state.db.bookings
-    await app.state.bookings_collection.delete_many({})
-    await app.state.bookings_collection.insert_many(
-        [
-            {
-                "user_id": "user1",
-                "reference_number": "REF123",
-                "customer_service_number": "CSN123",
-                "provider_name": "Provider A",
-            },
-            {
-                "user_id": "user1",
-                "reference_number": "REF456",
-                "customer_service_number": "CSN456",
-                "provider_name": "Provider B",
-            },
-            {
-                "user_id": "user2",
-                "reference_number": "REF789",
-                "customer_service_number": "CSN789",
-                "provider_name": "Provider C",
-            },
-        ]
-    )
+    app.state.ctx = init_state()
+    await init_collections(app.state.ctx)
     yield
     # Cleanup: close MongoDB connection
     await app.state.client.close()
