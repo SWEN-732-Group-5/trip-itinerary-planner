@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
     await init_collections(app.state.ctx)
     yield
     # Cleanup: close MongoDB connection
-    await app.state.client.close()
+    await app.state.ctx.mongo.close()
 
 
 app = FastAPI(lifespan=lifespan)
