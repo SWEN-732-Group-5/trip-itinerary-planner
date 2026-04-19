@@ -1,15 +1,26 @@
 import { Button } from '@/components/ui/button';
-import { SessionContext, useSession } from '@/lib/auth/auth';
+import {
+	SessionContext,
+	useRenewSession,
+	useSession,
+	type SessionObject,
+} from '@/lib/auth/auth';
 import { useLocalStorage } from 'usehooks-ts';
 
 function SessionProvider({ children }: { children: React.ReactNode }) {
-	const [session_token, setSession] = useLocalStorage<string | undefined>(
+	const [session, setSession] = useLocalStorage<SessionObject | undefined>(
 		'user_session',
 		undefined,
 	);
-
+	const session_token = session?.session_token;
+	const expiry_time =
+		session?.expiry_time && typeof session.expiry_time == 'string' ?
+			new Date(session?.expiry_time)
+		:	undefined;
+	const context = { session_token, expiry_time, setSession };
+	useRenewSession(context);
 	return (
-		<SessionContext.Provider value={{ session_token, setSession }}>
+		<SessionContext.Provider value={context}>
 			{children}
 		</SessionContext.Provider>
 	);

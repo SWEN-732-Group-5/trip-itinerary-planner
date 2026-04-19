@@ -13,8 +13,8 @@ const queryClient = new QueryClient();
 
 function App() {
 	return (
-		<SessionProvider>
-			<QueryClientProvider client={queryClient}>
+		<QueryClientProvider client={queryClient}>
+			<SessionProvider>
 				<Layout>
 					<Routes>
 						<Route path="/" element={<Home />} />
@@ -23,8 +23,8 @@ function App() {
 						<Route path="/signup" element={<Signup />} />
 					</Routes>
 				</Layout>
-			</QueryClientProvider>
-		</SessionProvider>
+			</SessionProvider>
+		</QueryClientProvider>
 	);
 }
 
