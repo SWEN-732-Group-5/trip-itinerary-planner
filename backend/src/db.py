@@ -101,9 +101,12 @@ def get_minio_client(cred: MinioConfig = get_minio_credentials()) -> Minio:
     global _minio_bucket
     if _minio_bucket is None:
         _minio_bucket = create_minio_client(cred)
-        if not _minio_bucket.bucket_exists(FILE_BUCKET_NAME):
-            _minio_bucket.make_bucket(FILE_BUCKET_NAME)
     return _minio_bucket
+
+
+def ensure_file_bucket_exists(minio_client: Minio):
+    if not minio_client.bucket_exists(FILE_BUCKET_NAME):
+        minio_client.make_bucket(FILE_BUCKET_NAME)
 
 
 @dataclass

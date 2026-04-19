@@ -2,7 +2,7 @@ import os
 from datetime import date
 
 from fastapi import APIRouter, Depends, File, UploadFile
-from src.db import FILE_BUCKET_NAME, AppContextDep
+from src.db import FILE_BUCKET_NAME, AppContextDep, ensure_file_bucket_exists
 
 from .auth import authenticated_user
 
@@ -25,6 +25,7 @@ def upload_file(
 
     file_name = f"{user['user_id']}/{file.filename or default_file_name()}"
 
+    ensure_file_bucket_exists(state.minio)
     result = state.minio.put_object(
         FILE_BUCKET_NAME,
         file_name,

@@ -2,7 +2,7 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from src.db import init_collections, init_state
+from src.db import AppContext, get_db_client, get_minio_client, init_collections
 from src.routes.auth import auth_router
 from src.routes.file import file_router
 from src.routes.trip_routes import trip_router
@@ -21,7 +21,14 @@ def config_logger(name) -> logging.Logger:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.state.ctx = init_state()
+    mongo = get_db_client()
+    app.state.ctx = AppContext(
+        logger=logging.getLogger("main"),
+        mongo=mongo,
+        minio=get_minio_client(),
+        db=mongo.trip_itinerary_planner,
+        bookings_collection=mongo.trip_itinerary_planner.bookings,
+    )
     await init_collections(app.state.ctx)
     yield
     # Cleanup: close MongoDB connection
