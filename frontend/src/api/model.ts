@@ -65,8 +65,8 @@ export const tripSchema = z.object({
 	trip_name: z.string(),
 	start_time: z.string(), // ISO date string
 	end_time: z.string(), // ISO date string
-	organizers: z.array(userSchema),
-	guests: z.array(userSchema),
+	organizers: z.array(z.string()), // Array of user IDs
+	guests: z.array(z.string()), // Array of user IDs
 	events: z.array(tripEventSchema),
 });
 

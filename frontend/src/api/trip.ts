@@ -19,6 +19,35 @@ export function useTrip(tripId?: string) {
 	});
 }
 
+export function useCreateTrip() {
+	const { post } = useAuthFetch();
+	const client = useQueryClient();
+	return useMutation({
+		mutationFn: async (tripData: {
+			trip_name: string;
+			start_time: Date;
+			end_time: Date;
+		}) => {
+			const response = await post(`/api/trips`, {
+				body: JSON.stringify({
+					trip_name: tripData.trip_name,
+					start_time: tripData.start_time.toISOString(),
+					end_time: tripData.end_time.toISOString(),
+				}),
+			});
+			if (!response.ok) {
+				const errorText = await response.text();
+				console.error('Trip creation error response:', errorText);
+				throw new Error(`Failed to create trip: ${response.statusText}`);
+			}
+			const jsonData = await response.json();
+			await client.invalidateQueries({ queryKey: ['trips'] });
+			console.log('Trip created successfully:', jsonData);
+			return tripSchema.parse(jsonData);
+		},
+	});
+}
+
 export function useMutateTrip() {
 	const { post } = useAuthFetch();
 	const client = useQueryClient();
@@ -28,18 +57,13 @@ export function useMutateTrip() {
 				body: JSON.stringify(updatedTrip),
 			});
 			if (!response.ok) {
-				throw new Error(`Error updating trip: ${response.statusText}`);
+				const errorText = await response.text();
+				console.error('Error modifying trip:', errorText);
+				throw new Error(`Failed to create/update trip: ${response.statusText}`);
 			}
-			const [trip] = await Promise.allSettled([
-				response.json(),
-				client.invalidateQueries({ queryKey: ['trips'] }),
-			]);
-			if (trip.status === 'rejected') {
-				throw new Error(
-					`Error parsing trip response: ${trip.reason instanceof Error ? trip.reason.message : 'Unknown error'}`,
-				);
-			}
-			return tripSchema.parse(trip.value);
+			const jsonData = await response.json();
+			await client.invalidateQueries({ queryKey: ['trips'] });
+			return tripSchema.parse(jsonData);
 		},
 	});
 }
