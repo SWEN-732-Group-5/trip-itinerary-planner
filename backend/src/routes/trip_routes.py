@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import ValidationError
@@ -473,7 +473,7 @@ async def accept_trip_invitation(
         raise HTTPException(
             status_code=404, detail=f"Could not find invitation {invitation_id}"
         )
-    if invitation["expiry_time"] < datetime.now():
+    if invitation["expiry_time"] < datetime.now(timezone.utc):
         raise HTTPException(
             status_code=400,
             detail=f"Invitation {invitation_id} has expired and can no longer be accepted",

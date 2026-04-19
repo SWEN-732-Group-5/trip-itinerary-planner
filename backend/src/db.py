@@ -24,5 +24,5 @@ def get_db_client() -> AsyncMongoClient:
     global _db_client
     if _db_client is None:
         url = get_mongodb_url()
-        _db_client = AsyncMongoClient(url)
+        _db_client = AsyncMongoClient(url, tz_aware=True)
     return _db_client

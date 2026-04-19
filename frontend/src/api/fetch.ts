@@ -3,34 +3,35 @@ import { useSession } from '@/lib/auth/auth';
 type FetchPayload = Omit<NonNullable<Parameters<typeof fetch>[1]>, 'method'>;
 
 export async function post(endpoint: string, payload: FetchPayload) {
+	console.log('POST request to:', endpoint, 'with payload:', payload);
 	return fetch(endpoint, {
+		...payload,
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json', ...payload?.headers },
-		...payload,
 	});
 }
 
 export async function get(endpoint: string, payload?: FetchPayload) {
 	return fetch(endpoint, {
+		...payload,
 		method: 'GET',
 		headers: { 'Content-Type': 'application/json', ...payload?.headers },
-		...payload,
 	});
 }
 
 export async function put(endpoint: string, payload: FetchPayload) {
 	return fetch(endpoint, {
+		...payload,
 		method: 'PUT',
 		headers: { 'Content-Type': 'application/json', ...payload?.headers },
-		...payload,
 	});
 }
 
 export async function del(endpoint: string, payload?: FetchPayload) {
 	return fetch(endpoint, {
 		method: 'DELETE',
-		...payload,
 		headers: { 'Content-Type': 'application/json', ...payload?.headers },
+		...payload,
 	});
 }
 
