@@ -1405,13 +1405,14 @@ def test_get_trip_invitation_success():
     invitations_collection = MagicMock()
     invitations_collection.find_one = AsyncMock(return_value=invitation)
 
-    trip = make_trip_dict("trip1")
-    trips_collection = MagicMock()
-    trips_collection.find_one = AsyncMock(return_value=trip)
-
     user = make_user_dict("user1")
     users_collection = MagicMock()
     users_collection.find_one = AsyncMock(return_value=user)
+
+    trip = make_trip_dict("trip1")
+    trip["organizers"] = ["user1"]
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=trip)
 
     with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn:
         mock_client = make_mock_db_client(trips_collection)
