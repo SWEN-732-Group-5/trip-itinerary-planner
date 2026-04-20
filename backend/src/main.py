@@ -2,10 +2,18 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from src.db import get_mongodb_url, get_db_client
+from src.db import (
+    AppContext,
+    ensure_file_bucket_exists,
+    get_db_client,
+    get_minio_client,
+    init_collections,
+)
+from src.routes.auth import auth_router
+from src.routes.file import file_router
 from src.routes.trip_routes import trip_router
 from src.routes.user_routes import user_router
-from src.routes.auth import auth_router
+
 
 def config_logger(name) -> logging.Logger:
     # Configure basic logging
@@ -19,44 +27,29 @@ def config_logger(name) -> logging.Logger:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    url = get_mongodb_url()
-    app.state.logger = config_logger("main")
-    app.state.logger.info(f"Connecting to MongoDB at {url}")
-    app.state.client = get_db_client()
-    app.state.db = app.state.client.trip_itinerary_planner
-    app.state.bookings_collection = app.state.db.bookings
-    await app.state.bookings_collection.delete_many({})
-    await app.state.bookings_collection.insert_many(
-        [
-            {
-                "user_id": "user1",
-                "reference_number": "REF123",
-                "customer_service_number": "CSN123",
-                "provider_name": "Provider A",
-            },
-            {
-                "user_id": "user1",
-                "reference_number": "REF456",
-                "customer_service_number": "CSN456",
-                "provider_name": "Provider B",
-            },
-            {
-                "user_id": "user2",
-                "reference_number": "REF789",
-                "customer_service_number": "CSN789",
-                "provider_name": "Provider C",
-            },
-        ]
+    mongo = get_db_client()
+    minio = get_minio_client()
+    app.state.ctx = AppContext(
+        logger=logging.getLogger("main"),
+        mongo=mongo,
+        minio=minio,
+        db=mongo.trip_itinerary_planner,
+        bookings_collection=mongo.trip_itinerary_planner.bookings,
     )
+    ensure_file_bucket_exists(minio)
+    await init_collections(app.state.ctx)
     yield
     # Cleanup: close MongoDB connection
-    await app.state.client.close()
+    await app.state.ctx.mongo.close()
+
 
 app = FastAPI(lifespan=lifespan)
 
 app.include_router(trip_router)
 app.include_router(user_router)
 app.include_router(auth_router)
+app.include_router(file_router)
+
 
 def main(reload: bool = False):
     import uvicorn

@@ -1,6 +1,6 @@
 import bcrypt
 from fastapi import APIRouter, Depends, HTTPException
-from src.db import get_db_client
+from src.db import AppContextDep, get_db_client
 from src.db_types import (
     Trip,
     User,
@@ -44,14 +44,15 @@ async def get_self(user: dict = Depends(authenticated_user)):
 
 @user_router.get("/trips", status_code=200)
 async def get_user_trips(
-    user: dict = Depends(authenticated_user), user_id: Optional[str] = None
+    state: AppContextDep,
+    user: dict = Depends(authenticated_user),
+    user_id: Optional[str] = None,
 ):
     if user_id is not None and user["user_id"] != user_id:
         raise HTTPException(
             status_code=403, detail="You can only access your own trips"
         )
-    db = get_db_client().trip_itinerary_planner
-    trips_cursor = db.trips.find(
+    trips_cursor = state.db.trips.find(
         {"$or": [{"organizers": user["user_id"]}, {"guests": user["user_id"]}]}
     )
     trips = []
@@ -62,9 +63,10 @@ async def get_user_trips(
 
 
 @user_router.get("/{user_id}", status_code=200)
-async def get_user(user_id: str, _user: dict = Depends(authenticated_user)):
-    db = get_db_client().trip_itinerary_planner
-    user_data = await db.users.find_one({"user_id": user_id})
+async def get_user(
+    user_id: str, state: AppContextDep, _user: dict = Depends(authenticated_user)
+):
+    user_data = await state.db.users.find_one({"user_id": user_id})
     if user_data is None:
         raise HTTPException(status_code=404, detail=f"User with id {user_id} not found")
     return {
@@ -75,10 +77,11 @@ async def get_user(user_id: str, _user: dict = Depends(authenticated_user)):
 
 @user_router.put("", response_model=User, status_code=200)
 async def update_user(
-    update_request: UpdateUserRequest, user: dict = Depends(authenticated_user)
+    update_request: UpdateUserRequest,
+    state: AppContextDep,
+    user: dict = Depends(authenticated_user),
 ):
-    db = get_db_client().trip_itinerary_planner
-    result = await db.users.update_one(
+    result = await state.db.users.update_one(
         {"user_id": user["user_id"]},
         {
             "$set": {
@@ -91,15 +94,16 @@ async def update_user(
         raise HTTPException(
             status_code=404, detail=f"Failed to update user with id {user['user_id']}"
         )
-    updated_user = await db.users.find_one({"user_id": user["user_id"]})
+    updated_user = await state.db.users.find_one({"user_id": user["user_id"]})
     return User.model_validate(updated_user)
 
 
 @user_router.put("/password", status_code=200)
 async def update_password(
-    update_request: UpdatePasswordRequest, user: dict = Depends(authenticated_user)
+    state: AppContextDep,
+    update_request: UpdatePasswordRequest,
+    user: dict = Depends(authenticated_user),
 ):
-    db = get_db_client().trip_itinerary_planner
     if not bcrypt.checkpw(
         update_request.current_password.encode(), user["password_hash"].encode()
     ):
@@ -107,7 +111,7 @@ async def update_password(
     hashed_password = bcrypt.hashpw(
         update_request.new_password.encode(), bcrypt.gensalt()
     ).decode()
-    result = await db.users.update_one(
+    result = await state.db.users.update_one(
         {"user_id": user["user_id"]}, {"$set": {"password_hash": hashed_password}}
     )
     if result.modified_count == 0:
@@ -118,18 +122,17 @@ async def update_password(
 
 
 @user_router.delete("", status_code=204)
-async def delete_user(user: dict = Depends(authenticated_user)):
-    db = get_db_client().trip_itinerary_planner
-    result = await db.users.delete_one({"user_id": user["user_id"]})
+async def delete_user(state: AppContextDep, user: dict = Depends(authenticated_user)):
+    result = await state.db.users.delete_one({"user_id": user["user_id"]})
     if result.deleted_count == 0:
         raise HTTPException(
             status_code=404, detail=f"User with id {user['user_id']} not found"
         )
-    result = await db.user_sessions.delete_many({"user_id": user["user_id"]})
-    result = await db.trips.update_many(
+    result = await state.db.user_sessions.delete_many({"user_id": user["user_id"]})
+    result = await state.db.trips.update_many(
         {"organizers": user["user_id"]}, {"$pull": {"organizers": user["user_id"]}}
     )
-    result = await db.trips.update_many(
+    result = await state.db.trips.update_many(
         {"guests": user["user_id"]}, {"$pull": {"guests": user["user_id"]}}
     )
     return None
