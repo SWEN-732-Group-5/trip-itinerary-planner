@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        node-version: [20]
+        node-version: [ 20 ]
     steps:
       - uses: actions/checkout@v4
       - name: Install pnpm
@@ -27,6 +27,17 @@ jobs:
           cache: "pnpm"
       - name: Install dependencies
         run: pnpm install
+
+      - name: Start dependent services
+        working-directory: ./backend
+        run: |
+          cp example.env .env
+          docker compose up -d
+
+      - name: Wait for services to be ready
+        run: |
+          echo "Waiting for MinIO and MongoDB to become ready..."
+          sleep 10
 
       - name: Run all tests
         run: pnpm test
