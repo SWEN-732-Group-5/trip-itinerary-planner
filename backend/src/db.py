@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from dataclasses import dataclass
@@ -104,9 +105,24 @@ def get_minio_client(cred: MinioConfig = get_minio_credentials()) -> Minio:
     return _minio_bucket
 
 
-def ensure_file_bucket_exists(minio_client: Minio):
-    if not minio_client.bucket_exists(FILE_BUCKET_NAME):
-        minio_client.make_bucket(FILE_BUCKET_NAME)
+def ensure_file_bucket_exists(minio_client: Minio, bucket_name: str = FILE_BUCKET_NAME):
+    if not minio_client.bucket_exists(bucket_name):
+        minio_client.make_bucket(bucket_name)
+
+    desired_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "PublicReadOnly",
+                "Effect": "Allow",
+                "Principal": {"AWS": ["*"]},
+                "Action": ["s3:GetObject"],
+                "Resource": [f"arn:aws:s3:::{bucket_name}/*"],
+            }
+        ],
+    }
+    if json.loads(minio_client.get_bucket_policy(bucket_name)) != desired_policy:
+        minio_client.set_bucket_policy(bucket_name, json.dumps(desired_policy))
 
 
 @dataclass
