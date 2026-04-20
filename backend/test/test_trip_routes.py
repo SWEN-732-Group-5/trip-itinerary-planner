@@ -1474,6 +1474,35 @@ def test_get_invitation_trip_not_found():
             assert "Invitation invalid_invitation not valid" in response.json()["detail"]
 
 
+def test_get_inviter_not_organizer():
+    invitation = make_invitation_dict("invitation1", "trip1")
+    invitations_collection = MagicMock()
+    invitations_collection.find_one = AsyncMock(return_value=invitation)
+
+    user = make_user_dict("user1")
+    users_collection = MagicMock()
+    users_collection.find_one = AsyncMock(return_value=user)
+
+    trip = make_trip_dict("trip1")
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=trip)
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_client.trip_itinerary_planner.trip_invitations = invitations_collection
+        mock_client.trip_itinerary_planner.trips = trips_collection
+        mock_client.trip_itinerary_planner.users = users_collection
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.get("/api/trips/invitation/invalid_invitation")
+            assert response.status_code == 406
+            assert "Invitation invalid_invitation not valid" in response.json()["detail"]
+
+
 def test_get_inviter_not_found():
     invitation = make_invitation_dict("invitation1", "trip1")
     invitations_collection = MagicMock()

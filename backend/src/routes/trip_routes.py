@@ -475,7 +475,7 @@ async def get_trip_invitation(invitation_id: str):
     inviter = User.model_validate(inviter)
     if invitation.inviter_id not in trip.organizers:
         raise HTTPException(
-            status_code=404, detail=f"Invitation {invitation_id} not valid"
+            status_code=406, detail=f"Invitation {invitation_id} not valid"
         )
     return {
         "trip_id": trip.trip_id, 
