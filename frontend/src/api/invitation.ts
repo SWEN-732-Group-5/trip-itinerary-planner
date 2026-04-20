@@ -53,13 +53,14 @@ export function useAcceptInvitation() {
     return useMutation({
         mutationFn: async (invitation_id: string | undefined ) => {
             const response = await put(`/api/trips/invitation/${invitation_id}/accept`, {});
-            if (!response.ok) {
-                throw new Error(`Error accepting invitation: ${response.statusText}`);
-            }
             const accepted = await response.json();
+            console.log(accepted)
+            if (!response.ok) {
+                throw new Error(`Error: ${accepted.detail}`);
+            }
             if (accepted.status === 'rejected') {
                 throw new Error(
-                    `Error parsing trip response: ${accepted.reason instanceof Error ? accepted.reason.message : 'Unknown error'}`,
+                    `Error: ${accepted.reason instanceof Error ? accepted.detail : 'Unknown error'}`,
                 );
             }
             return accepted;

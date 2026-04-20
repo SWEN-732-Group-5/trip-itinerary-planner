@@ -32,6 +32,8 @@ function ViewInvitation() {
         });
     }
 
+    const isExpired = new Date(invitationData.expiry_time) < new Date();
+
     return (
 		<div className="p-6 space-y-6">
             <TooltipProvider>
@@ -55,7 +57,9 @@ function ViewInvitation() {
                     <CardContent>
                         {isLoggedIn ? 
                             <div>
-                                <Button onClick={handleAccept}>Accept Invitation</Button>
+                                <Button className={isExpired ? "text-destructive" : ""} onClick={handleAccept} disabled={isExpired}>
+                                    {isExpired ? "Invitation has expired" : "Accept invitation"}
+                                </Button>
                             </div> 
                             :
                             <div>
