@@ -10,6 +10,7 @@ from src.db_types import (
     Trip,
     TripEvent,
     TripInvitation,
+    User,
 )
 from src.request_types import (
     CreateEventRequest,
@@ -70,7 +71,6 @@ async def get_trip_summary(trip_id: str):
         raise HTTPException(status_code=404, detail=f"Trip {trip_id} not found")
     return {
         "trip_name": trip["trip_name"],
-        "trip_description": trip["trip_description"],
         "start_time": trip["start_time"],
         "end_time": trip["end_time"],
     }
@@ -451,7 +451,7 @@ async def get_trip_invitations(trip_id: str, user: dict = Depends(authenticated_
 
 
 @trip_router.get(
-    "/invitation/{invitation_id}", response_model=TripInvitation, status_code=200
+    "/invitation/{invitation_id}", status_code=200
 )
 async def get_trip_invitation(invitation_id: str):
     db = get_db_client().trip_itinerary_planner
@@ -460,7 +460,32 @@ async def get_trip_invitation(invitation_id: str):
         raise HTTPException(
             status_code=404, detail=f"Could not find invitation {invitation_id}"
         )
-    return TripInvitation.model_validate(invitation)
+    invitation = TripInvitation.model_validate(invitation)
+    trip = await db.trips.find_one({"trip_id": invitation.trip_id})
+    if trip is None:
+        raise HTTPException(
+            status_code=404, detail=f"Invitation {invitation_id} not valid"
+        )
+    trip = Trip.model_validate(trip)
+    inviter = await db.users.find_one({"user_id": invitation.inviter_id})
+    if inviter is None:
+        raise HTTPException(
+            status_code=404, detail=f"Invitation {invitation_id} not valid"
+        )
+    inviter = User.model_validate(inviter)
+    if invitation.inviter_id not in trip.organizers:
+        raise HTTPException(
+            status_code=404, detail=f"Invitation {invitation_id} not valid"
+        )
+    return {
+        "trip_name": trip.trip_name, 
+        "trip_start": trip.start_time, 
+        "trip_end": trip.end_time, 
+        "inviter": invitation.inviter_id, 
+        "inviter_name": inviter.display_name, 
+        "is_organizer": invitation.is_organizer, 
+        "expiry_time": invitation.expiry_time
+    }
 
 
 @trip_router.put("/invitation/{invitation_id}/accept", status_code=200)
