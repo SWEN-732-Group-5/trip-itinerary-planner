@@ -121,7 +121,16 @@ def ensure_file_bucket_exists(minio_client: Minio, bucket_name: str = FILE_BUCKE
             }
         ],
     }
-    if json.loads(minio_client.get_bucket_policy(bucket_name)) != desired_policy:
+    current_policy = None
+    try:
+        current_policy = minio_client.get_bucket_policy(bucket_name)
+    except Exception as e:
+        logging.warning(f"Could not get bucket policy for {bucket_name}: {e}")
+        logging.warning(
+            f"Assuming bucket {bucket_name} has no policy and will set the desired policy."
+        )
+        pass
+    if not current_policy or json.loads(current_policy) != desired_policy:
         minio_client.set_bucket_policy(bucket_name, json.dumps(desired_policy))
 
 
