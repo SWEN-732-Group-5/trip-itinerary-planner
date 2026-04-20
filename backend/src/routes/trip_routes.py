@@ -478,6 +478,7 @@ async def get_trip_invitation(invitation_id: str):
             status_code=404, detail=f"Invitation {invitation_id} not valid"
         )
     return {
+        "trip_id": trip.trip_id, 
         "trip_name": trip.trip_name, 
         "trip_start": trip.start_time, 
         "trip_end": trip.end_time, 
