@@ -2,15 +2,79 @@ name: Publish Containers to GHCR
 
 on:
   push:
-    branches:
-      - main
     tags:
       - "v*"
-  workflow_dispatch:
+  release:
+    types:
+      - created
 
 jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build frontend
+        run: pnpm --filter frontend build
+
+  test:
+    runs-on: ubuntu-22.04
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Start dependent services
+        working-directory: ./backend
+        run: |
+          cp example.env .env
+          docker compose up -d
+
+      - name: Wait for services to be ready
+        run: |
+          echo "Waiting for MinIO and MongoDB to become ready..."
+          sleep 10
+
+      - name: Run all tests
+        run: pnpm test
+
   publish:
     runs-on: ubuntu-22.04
+    needs:
+      - build
+      - test
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'release'
     permissions:
       contents: read
       packages: write
@@ -49,7 +113,7 @@ jobs:
         with:
           images: ghcr.io/swen-732-group-5/trip-itinerary-planner/${{ matrix.name }}
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest
             type=sha,prefix=sha-
             type=ref,event=tag
 
