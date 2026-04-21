@@ -197,6 +197,7 @@ async def create_event(
         raise HTTPException(
             status_code=404, detail=f"Could not find trip {trip_id} to add an event to"
         )
+
     if user["user_id"] not in trip_dict["organizers"]:
         raise HTTPException(status_code=403, detail="Only organizers can add events")
 
@@ -325,8 +326,12 @@ async def update_event_location(
         name=update_request.location_name,
         location_type=EventType[update_request.location_type],
         gps_position=(
-            update_request.location_coords[0],
-            update_request.location_coords[1],
+            (
+                update_request.location_coords[0],
+                update_request.location_coords[1],
+            )
+            if update_request.location_coords
+            else None
         ),
     )
     updated_event = matching_events[0]
