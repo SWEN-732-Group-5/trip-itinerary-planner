@@ -18,7 +18,7 @@ Navigate to each subpackage directory for more details.
 Run the following options using `pnpm run <option>`
 
 options:
-- `prod` - Run fully containerized application.
+- `prod` - Run fully containerized application(open `localhost:4173`)
 - `dev` - Run development environment for all subpackages
 - `dev:backend` - Run backend development environment
 - `dev:frontend` - Run frontend development environment
