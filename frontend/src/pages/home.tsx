@@ -1,5 +1,4 @@
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { UserTrips } from '@/components/user-trips';
 import { LoggedIn, LoggedOut, LogoutButton } from '@/lib/auth/authSession';
 import { Link, useNavigate } from 'react-router';

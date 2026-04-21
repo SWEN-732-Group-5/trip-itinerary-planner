@@ -2,7 +2,7 @@ import { Toaster } from "sonner";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+export default function Layout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <div className={cn("flex min-h-screen flex-col bg-background")}>
       <Toaster />
