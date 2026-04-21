@@ -564,7 +564,7 @@ async def delete_trip_invitation(
 ):
     db = get_db_client().trip_itinerary_planner
     invitation = await db.trip_invitations.find_one(
-        {"_id": invitation_id, "trip_id": trip_id}
+        {"invitation_id": invitation_id, "trip_id": trip_id}
     )
     if invitation is None:
         raise HTTPException(
@@ -587,7 +587,6 @@ async def delete_trip_invitation(
             status_code=500,
             detail=f"Found invitation {invitation_id} but failed to delete it",
         )
-    return None
 
 
 @trip_router.put("/{trip_id}/leave-trip", status_code=200)
