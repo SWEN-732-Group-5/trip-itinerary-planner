@@ -39,7 +39,7 @@ async def create_user(request: CreateUserRequest):
 
 @user_router.get("/self", status_code=200)
 async def get_self(user: dict = Depends(authenticated_user)):
-    return {"display_name": user["display_name"], "phone_number": user["phone_number"]}
+    return {"user_id": user["user_id"], "display_name": user["display_name"], "phone_number": user["phone_number"]}
 
 
 @user_router.get("/trips", status_code=200)

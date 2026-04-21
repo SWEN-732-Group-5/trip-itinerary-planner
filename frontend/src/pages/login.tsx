@@ -2,10 +2,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { LOGIN_ERROR_MSG, useSession } from '@/lib/auth/auth';
 import { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
 
 export default function Login() {
+    const { redirect } = useParams();
 	const {
 		isLoggedIn,
 		action: { login },
@@ -31,9 +32,9 @@ export default function Login() {
 	};
 	useEffect(() => {
 		if (isLoggedIn) {
-			navigate('/');
+			navigate(redirect ? `/${redirect.replace("__", "/")}` : '/');
 		}
-	}, [isLoggedIn, navigate]);
+	}, [isLoggedIn, navigate, redirect]);
 
 	return (
 		<div className="w-full grow flex justify-center items-center">
