@@ -125,7 +125,7 @@ function TripDetails() {
 	}, [inviteOpen]);
 
 	const eventForm = useForm<CreateTripEventInput>({
-		resolver: zodResolver(eventInput),
+		resolver: zodResolver(eventInput) as any,
 		defaultValues: {
 			...DEFAULT_EVENT_FORM_STATE,
 			location_coords: DEFAULT_COORDS,
@@ -135,7 +135,7 @@ function TripDetails() {
 	});
 
 	const invitationForm = useForm<CreateInvitationInput>({
-		resolver: zodResolver(createInvitationInput),
+		resolver: zodResolver(createInvitationInput) as any,
 		defaultValues: {
 			...DEFAULT_INVITATION_FORM_STATE,
 			limit_uses: 1,
@@ -157,7 +157,7 @@ function TripDetails() {
 	};
 
 	const form = useForm<CreateTripEventInput>({
-		resolver: zodResolver(eventInput),
+		resolver: zodResolver(eventInput) as any,
 		defaultValues: {
 			...DEFAULT_FORM_STATE,
 			location_coords: [0, 0],
@@ -277,7 +277,7 @@ function TripDetails() {
 										</DialogHeader>
 										<form
 											id="event-form"
-											onSubmit={form.handleSubmit(onSubmitEvent)}
+											onSubmit={form.handleSubmit(onSubmitEvent as any)}
 											className="space-y-4"
 										>
 											<FieldGroup>
@@ -575,7 +575,7 @@ function TripDetails() {
 												className="space-y-2"
 												id="invitation-create-form"
 												onSubmit={invitationForm.handleSubmit(
-													onSubmitInvitation,
+													onSubmitInvitation as any,
 												)}
 											>
 												<FieldGroup>
