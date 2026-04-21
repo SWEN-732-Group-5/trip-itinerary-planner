@@ -19,6 +19,7 @@ Run the following options using `pnpm run <option>`
 
 options:
 - `prod` - Run fully containerized application(open `localhost:4173`)
+- `preview` - Run fully containerized application preview(open `localhost:4173`)
 - `dev` - Run development environment for all subpackages
 - `dev:backend` - Run backend development environment
 - `dev:frontend` - Run frontend development environment
