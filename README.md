@@ -25,6 +25,8 @@ options:
 - `dev:frontend` - Run frontend development environment
 - `test` - Run test suite for all subpackages
 
+Alternatively run `docker compose -f docker-compose.prod.yml up` to run this project without pnpm or node.js.
+
 ## Dependencies
 
 Required installation:
