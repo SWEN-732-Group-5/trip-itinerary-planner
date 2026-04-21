@@ -85,10 +85,28 @@ export const eventInput = z.object({
 	event_description: z.string().optional(),
 	location_name: z.string(),
 	location_type: eventTypeEnum,
-	location_coords: z.tuple([
-		z.number().min(-90).max(90), // latitude
-		z.number().min(-180).max(180), // longitude
-	]), // [latitude, longitude]
+	location_coords: z.preprocess(
+		(value) => {
+			if (!Array.isArray(value) || value.length < 2) {
+				return undefined;
+			}
+
+			const latRaw = String(value[0] ?? '').trim();
+			const lngRaw = String(value[1] ?? '').trim();
+
+			if (!latRaw && !lngRaw) {
+				return undefined;
+			}
+
+			return [Number(latRaw), Number(lngRaw)];
+		},
+		z
+			.tuple([
+				z.number().min(-90).max(90), // latitude
+				z.number().min(-180).max(180), // longitude
+			])
+			.optional(),
+	), // [latitude, longitude]
 	start_time: z.string().datetime(),
 	end_time: z.string().datetime(),
 	image_urls: z.array(z.string()).default([]),

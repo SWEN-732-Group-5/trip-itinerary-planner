@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { UserTrips } from '@/components/user-trips';
-import { LoggedIn, LoggedOut, LogoutButton } from '@/lib/auth/authSession';
+import { LoggedIn, LoggedOut } from '@/lib/auth/authSession';
 import { Link } from 'react-router';
 
 export default function Home() {
@@ -19,8 +19,7 @@ export default function Home() {
 			</LoggedOut>
 			<LoggedIn>
 				<UserTrips />
-
-				<LogoutButton />
+				<div className="mt-4 flex items-center gap-2"></div>
 			</LoggedIn>
 		</div>
 	);

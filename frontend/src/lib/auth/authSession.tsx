@@ -46,7 +46,7 @@ export function LogoutButton() {
 	if (!isLoggedIn) return null;
 	return (
 		<Button onClick={() => logout()} variant="destructive" size="lg">
-			Logout
+			Log Out
 		</Button>
 	);
 }
