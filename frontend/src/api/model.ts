@@ -45,7 +45,7 @@ export const eventAttachmentSchema = z.object({
 export const eventLocationSchema = z.object({
 	name: z.string(),
 	location_type: eventTypeEnum,
-	gps_position: z.tuple([z.number(), z.number()]), // [latitude, longitude]
+	gps_position: z.tuple([z.number(), z.number()]).optional().nullable(), // [latitude, longitude]
 });
 
 export const tripEventSchema = z.object({

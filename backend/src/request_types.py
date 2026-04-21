@@ -24,7 +24,7 @@ class CreateEventRequest(BaseModel):
     event_description: Optional[str]
     location_name: str
     location_type: EventType
-    location_coords: list[float]
+    location_coords: Optional[list[float]] = None
     start_time: datetime
     end_time: datetime
 
@@ -38,7 +38,7 @@ class UpdateEventRequest(BaseModel):
 class UpdateEventLocationRequest(BaseModel):
     location_name: str
     location_type: str
-    location_coords: list[float]
+    location_coords: Optional[list[float]] = None
     is_end_location: bool
 
 class CreateTripInvitationRequest(BaseModel):

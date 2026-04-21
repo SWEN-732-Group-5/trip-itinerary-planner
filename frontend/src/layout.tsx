@@ -17,7 +17,7 @@ export default function Layout({ children }: Readonly<{ children: React.ReactNod
         </Card>
       </main>
       <footer className="border-t bg-background/95 mt-auto py-4 text-center text-xs text-muted-foreground">
-        &copy; 2024 Trip Itinerary Planner. All rights reserved.
+        &copy; 2026 Trip Itinerary Planner. All rights reserved.
       </footer>
     </div>
   );

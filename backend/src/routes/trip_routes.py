@@ -210,8 +210,12 @@ async def create_event(
         name=creation_request.location_name,
         location_type=EventType[creation_request.location_type],
         gps_position=(
-            creation_request.location_coords[0],
-            creation_request.location_coords[1],
+            (
+                creation_request.location_coords[0],
+                creation_request.location_coords[1],
+            )
+            if creation_request.location_coords
+            else None
         ),
     )
     new_event = TripEvent(
@@ -333,8 +337,12 @@ async def update_event_location(
         name=update_request.location_name,
         location_type=EventType[update_request.location_type],
         gps_position=(
-            update_request.location_coords[0],
-            update_request.location_coords[1],
+            (
+                update_request.location_coords[0],
+                update_request.location_coords[1],
+            )
+            if update_request.location_coords
+            else None
         ),
     )
     updated_event = matching_events[0]
