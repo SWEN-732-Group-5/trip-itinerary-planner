@@ -268,7 +268,9 @@ function TripDetails() {
 							<CardHeader className="flex flex-row items-center justify-between">
 								<CardTitle>Events</CardTitle>
 								<Dialog open={eventOpen} onOpenChange={setEventOpen}>
-									<Button onClick={() => onOpenDialog()}>Add Event</Button>
+									{userData && tripData.organizers.includes(userData.user_id) && (
+										<Button onClick={() => onOpenDialog()}>Add Event</Button>
+									)}
 									<DialogContent className="max-w-md overflow-y-auto max-h-[90vh]">
 										<DialogHeader>
 											<DialogTitle>
@@ -458,7 +460,7 @@ function TripDetails() {
 							<CardContent className="space-y-4">
 								{events.length === 0 ?
 									<p className="text-muted-foreground">No events yet</p>
-								:	events.map((event) => (
+									: events.map((event) => (
 										<div
 											key={event.event_id}
 											className="border p-3 rounded-xl flex justify-between items-start"
@@ -500,26 +502,28 @@ function TripDetails() {
 													</div>
 												)}
 											</div>
-											<div className="flex gap-1">
-												<Button
-													variant="ghost"
-													size="icon"
-													onClick={() => onOpenDialog(event)}
-												>
-													<Edit2 className="h-4 w-4" />
-												</Button>
+											{userData && tripData.organizers.includes(userData.user_id) && (
+												<div className="flex gap-1">
+													<Button
+														variant="ghost"
+														size="icon"
+														onClick={() => onOpenDialog(event)}
+													>
+														<Edit2 className="h-4 w-4" />
+													</Button>
 
-												<Button
-													variant="ghost"
-													size="icon"
-													className="text-destructive hover:text-destructive hover:bg-destructive/10"
-													onClick={() =>
-														handleDelete(event.event_id, event.event_name)
-													}
-												>
-													<Trash2 className="h-4 w-4" />
-												</Button>
-											</div>
+													<Button
+														variant="ghost"
+														size="icon"
+														className="text-destructive hover:text-destructive hover:bg-destructive/10"
+														onClick={() =>
+															handleDelete(event.event_id, event.event_name)
+														}
+													>
+														<Trash2 className="h-4 w-4" />
+													</Button>
+												</div>
+											)}
 										</div>
 									))
 								}
@@ -536,7 +540,7 @@ function TripDetails() {
 									<h3 className="font-semibold mb-1">Organizers</h3>
 									{organizers.length === 0 ?
 										<p className="text-sm text-muted-foreground">None</p>
-									:	organizers.map((user) => (
+										: organizers.map((user) => (
 											<Badge key={user} variant="secondary" className="mr-2">
 												{userNames?.user_names[user] || user}
 											</Badge>
@@ -548,7 +552,7 @@ function TripDetails() {
 									<h3 className="font-semibold mb-1">Guests</h3>
 									{guests.length === 0 ?
 										<p className="text-sm text-muted-foreground">None</p>
-									:	guests.map((user) => (
+										: guests.map((user) => (
 											<Badge key={user} variant="outline" className="mr-2">
 												{userNames?.user_names[user] || user}
 											</Badge>
@@ -651,7 +655,7 @@ function TripDetails() {
 																		// parse from the ISO (with Z) back to "YYYY-MM-DDTHH:MM"
 																		typeof field.value === 'string' ?
 																			field.value.replace(':00Z', '')
-																		:	''
+																			: ''
 																	}
 																/>
 																{fieldState.invalid && (
@@ -684,7 +688,7 @@ function TripDetails() {
 															<TooltipContent>Copy invite link</TooltipContent>
 														</Tooltip>
 													</div>
-												:	<Button
+													: <Button
 														type="submit"
 														form="invitation-create-form"
 														disabled={invitationPending}
@@ -699,7 +703,7 @@ function TripDetails() {
 								<CardContent className="space-y-4">
 									{!invitations || invitations.length === 0 ?
 										<p className="text-muted-foreground">No invitations yet</p>
-									:	invitations.map((invitation) => {
+										: invitations.map((invitation) => {
 											const isExpired =
 												new Date(invitation.expiry_time) < new Date();
 											return (
@@ -715,7 +719,7 @@ function TripDetails() {
 															<Badge>
 																{invitation.is_organizer ?
 																	'Organizer'
-																:	'Guest'}
+																	: 'Guest'}
 															</Badge>
 														</div>
 														<div>
