@@ -58,6 +58,7 @@ export const tripEventSchema = z.object({
 	start_time: datetime,
 	end_time: datetime,
 	attachments: z.array(eventAttachmentSchema),
+	image_urls: z.array(z.string()).default([]),
 });
 
 export const tripSchema = z.object({
@@ -94,6 +95,10 @@ export const commentSchema = z.object({
 	timestamp: datetime,
 });
 
+export const userNamesSchema = z.object({
+    user_names: z.record(z.string(), z.string())
+});
+
 export const invitationSchema = z.object({
 	invitation_id: z.string(), 
 	trip_id: z.string(), 
@@ -127,4 +132,5 @@ export type Trip = z.infer<typeof tripSchema>;
 export type TripSummary = z.infer<typeof tripSchema>;
 export type Expense = z.infer<typeof expenseSchema>;
 export type Comment = z.infer<typeof commentSchema>;
+export type UserName = z.infer<typeof userNamesSchema>;
 export type Invitation = z.infer<typeof invitationSchema>;

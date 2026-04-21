@@ -65,6 +65,7 @@ class TripEvent(BaseModel):
     end_location: Optional[EventLocation]
     start_time: datetime
     end_time: datetime
+    image_urls: list[str]
     attachments: list[EventAttachment]
 
 
