@@ -1,7 +1,6 @@
 services:
   backend:
     image: ghcr.io/astral-sh/uv:python3.14-bookworm-slim
-    container_name: trip-itinerary-planner-backend
     env_file:
       - .env
     environment:
@@ -22,7 +21,6 @@ services:
 
   mongodb:
     image: mongo:latest
-    container_name: trip-itinerary-planner-mongo
     env_file:
       - .env
     environment:
@@ -48,7 +46,6 @@ services:
 
   mongo-express:
     image: mongo-express:latest
-    container_name: trip-itinerary-planner-mongo-express
     env_file:
       - .env
     environment:
@@ -65,7 +62,6 @@ services:
 
   minio:
     image: minio/minio:latest
-    container_name: trip-itinerary-planner-minio
     env_file:
       - .env
     environment:
