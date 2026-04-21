@@ -1,5 +1,5 @@
 import bcrypt
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from src.db import AppContextDep, get_db_client
 from src.db_types import (
     Trip,
@@ -41,6 +41,26 @@ async def create_user(request: CreateUserRequest):
 async def get_self(user: dict = Depends(authenticated_user)):
     return {"display_name": user["display_name"], "phone_number": user["phone_number"]}
 
+@user_router.get("/names", status_code=200)
+async def get_user_names(
+    state: AppContextDep,
+    user: dict = Depends(authenticated_user),
+    # Use Query() to define the parameter name explicitly if desired, 
+    # though naming the variable 'ids' is sufficient.
+    ids: str = Query("", alias="ids", description="Comma-separated user IDs")
+):
+    if not ids:
+        return {"user_names": {}}
+
+    user_id_list = [uid.strip() for uid in ids.split(",") if uid.strip()]
+    
+    users_cursor = state.db.users.find({"user_id": {"$in": user_id_list}})
+    
+    user_names = {}
+    async for user_data in users_cursor:
+        user_names[user_data["user_id"]] = user_data.get("display_name", "Unknown User")
+        
+    return {"user_names": user_names}
 
 @user_router.get("/trips", status_code=200)
 async def get_user_trips(
@@ -73,6 +93,8 @@ async def get_user(
         "display_name": user_data["display_name"],
         "phone_number": user_data["phone_number"],
     }
+
+
 
 
 @user_router.put("", response_model=User, status_code=200)

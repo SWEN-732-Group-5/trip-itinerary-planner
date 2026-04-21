@@ -3,17 +3,11 @@ import { useSession } from '@/lib/auth/auth';
 type FetchPayload = Omit<NonNullable<Parameters<typeof fetch>[1]>, 'method'>;
 
 export async function post(endpoint: string, payload: FetchPayload) {
+	console.log('POST request to:', endpoint, 'with payload:', payload);
 	return fetch(endpoint, {
 		...payload,
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json', ...payload?.headers },
-	});
-}
-
-export async function postFormData(endpoint: string, formData: FormData) {
-	return fetch(endpoint, {
-		method: 'POST',
-		body: formData,
 	});
 }
 
@@ -56,23 +50,6 @@ export async function authPost(
 		headers: {
 			'session-token': session,
 			...payload?.headers,
-		},
-	});
-}
-
-export async function authPostFormData(
-	endpoint: string,
-	session: SessionKey,
-	formData: FormData,
-) {
-	if (!session) {
-		throw new Error('No session available for authenticated request');
-	}
-	return fetch(endpoint, {
-		method: 'POST',
-		body: formData,
-		headers: {
-			'session-token': session,
 		},
 	});
 }
@@ -133,8 +110,14 @@ export function useAuthFetch() {
 	return {
 		post: (endpoint: string, payload: FetchPayload) =>
 			authPost(endpoint, session_token, payload),
-		postFormData: (endpoint: string, formData: FormData) =>
-			authPostFormData(endpoint, session_token, formData),
+		postForm: (endpoint: string, payload: FetchPayload) =>
+			authPost(endpoint, session_token, {
+				...payload,
+				headers: {
+					...payload.headers,
+					'Content-Type': 'application/x-www-form-urlencoded',
+				},
+			}),
 		get: (endpoint: string, payload?: FetchPayload) =>
 			authGet(endpoint, session_token, payload),
 		put: (endpoint: string, payload: FetchPayload) =>
