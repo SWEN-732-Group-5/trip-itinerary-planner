@@ -1,0 +1,19 @@
+# Python cache and virtual env artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.venv/
+
+# Local/editor files
+.env
+.git
+.gitignore
+
+# Node artifacts from backend package tooling
+node_modules/
+
+# Build/test outputs
+coverage.xml
+htmlcov/

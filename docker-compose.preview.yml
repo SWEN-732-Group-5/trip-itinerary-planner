@@ -1,0 +1,7 @@
+include:
+  - ./frontend/docker-compose.preview.yml
+  - ./backend/docker-compose.preview.yml
+
+volumes:
+  mongodb_data:
+  minio_data:
