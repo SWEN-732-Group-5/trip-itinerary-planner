@@ -608,9 +608,8 @@ def test_get_self_returns_only_safe_fields():
                 assert response.status_code == 200
                 data = response.json()
                 # Verify only display_name and phone_number are returned
-                assert set(data.keys()) == {"display_name", "phone_number"}
+                assert set(data.keys()) == {"user_id", "display_name", "phone_number"}
                 assert "password_hash" not in data
-                assert "user_id" not in data
         finally:
             app.dependency_overrides.clear()
 

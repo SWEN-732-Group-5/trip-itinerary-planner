@@ -3,11 +3,17 @@ import { useSession } from '@/lib/auth/auth';
 type FetchPayload = Omit<NonNullable<Parameters<typeof fetch>[1]>, 'method'>;
 
 export async function post(endpoint: string, payload: FetchPayload) {
-	console.log('POST request to:', endpoint, 'with payload:', payload);
 	return fetch(endpoint, {
 		...payload,
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json', ...payload?.headers },
+	});
+}
+
+export async function postFormData(endpoint: string, formData: FormData) {
+	return fetch(endpoint, {
+		method: 'POST',
+		body: formData,
 	});
 }
 
@@ -46,10 +52,28 @@ export async function authPost(
 		throw new Error('No session available for authenticated request');
 	}
 	return post(endpoint, {
+		...payload,
+		headers: {
+			'session-token': session,
+			...payload?.headers,
+		},
+	});
+}
+
+export async function authPostFormData(
+	endpoint: string,
+	session: SessionKey,
+	formData: FormData,
+) {
+	if (!session) {
+		throw new Error('No session available for authenticated request');
+	}
+	return fetch(endpoint, {
+		method: 'POST',
+		body: formData,
 		headers: {
 			'session-token': session,
 		},
-		...payload,
 	});
 }
 
@@ -62,10 +86,11 @@ export async function authGet(
 		throw new Error('No session available for authenticated request');
 	}
 	return get(endpoint, {
+		...payload,
 		headers: {
 			'session-token': session,
+			...payload?.headers,
 		},
-		...payload,
 	});
 }
 
@@ -78,10 +103,11 @@ export async function authPut(
 		throw new Error('No session available for authenticated request');
 	}
 	return put(endpoint, {
+		...payload,
 		headers: {
 			'session-token': session,
+			...payload?.headers,
 		},
-		...payload,
 	});
 }
 
@@ -94,10 +120,11 @@ export async function authDel(
 		throw new Error('No session available for authenticated request');
 	}
 	return del(endpoint, {
+		...payload,
 		headers: {
 			'session-token': session,
+			...payload?.headers,
 		},
-		...payload,
 	});
 }
 
@@ -106,6 +133,8 @@ export function useAuthFetch() {
 	return {
 		post: (endpoint: string, payload: FetchPayload) =>
 			authPost(endpoint, session_token, payload),
+		postFormData: (endpoint: string, formData: FormData) =>
+			authPostFormData(endpoint, session_token, formData),
 		get: (endpoint: string, payload?: FetchPayload) =>
 			authGet(endpoint, session_token, payload),
 		put: (endpoint: string, payload: FetchPayload) =>

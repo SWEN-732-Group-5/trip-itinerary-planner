@@ -1,6 +1,6 @@
 import * as z from 'zod';
 
-export const datetime = z.string().datetime();
+export const datetime = z.iso.datetime();
 
 export const userSchema = z.object({
 	user_id: z.string(),
@@ -45,7 +45,7 @@ export const eventAttachmentSchema = z.object({
 export const eventLocationSchema = z.object({
 	name: z.string(),
 	location_type: eventTypeEnum,
-	gps_position: z.tuple([z.number(), z.number()]), // [latitude, longitude]
+	gps_position: z.tuple([z.number(), z.number()]).optional().nullable(), // [latitude, longitude]
 });
 
 export const tripEventSchema = z.object({
@@ -58,6 +58,7 @@ export const tripEventSchema = z.object({
 	start_time: datetime,
 	end_time: datetime,
 	attachments: z.array(eventAttachmentSchema),
+	image_urls: z.array(z.string()).default([]),
 });
 
 export const tripSchema = z.object({
@@ -68,6 +69,12 @@ export const tripSchema = z.object({
 	organizers: z.array(z.string()),
 	guests: z.array(z.string()),
 	events: z.array(tripEventSchema),
+});
+
+export const tripSummarySchema = z.object({
+	trip_name: z.string(),
+	start_time: z.string(), // ISO date string
+	end_time: z.string(), // ISO date string
 });
 
 export const expenseSchema = z.object({
@@ -88,6 +95,30 @@ export const commentSchema = z.object({
 	timestamp: datetime,
 });
 
+export const userNamesSchema = z.object({
+	user_names: z.record(z.string(), z.string()),
+});
+
+export const invitationSchema = z.object({
+	invitation_id: z.string(),
+	trip_id: z.string(),
+	inviter_id: z.string(),
+	is_organizer: z.boolean(),
+	limit_uses: z.number(),
+	expiry_time: z.string(), // ISO date string
+});
+
+export const invitationSummarySchema = z.object({
+	trip_id: z.string(),
+	trip_name: z.string(),
+	trip_start: z.string(),
+	trip_end: z.string(),
+	inviter: z.string(),
+	inviter_name: z.string(),
+	is_organizer: z.boolean(),
+	expiry_time: z.string(),
+});
+
 export type EventType = z.infer<typeof eventTypeEnum>;
 export type ExpenseType = z.infer<typeof expenseEnum>;
 export type AttachmentType = z.infer<typeof attachmentEnum>;
@@ -98,5 +129,8 @@ export type EventAttachment = z.infer<typeof eventAttachmentSchema>;
 export type EventLocation = z.infer<typeof eventLocationSchema>;
 export type TripEvent = z.infer<typeof tripEventSchema>;
 export type Trip = z.infer<typeof tripSchema>;
+export type TripSummary = z.infer<typeof tripSchema>;
 export type Expense = z.infer<typeof expenseSchema>;
 export type Comment = z.infer<typeof commentSchema>;
+export type UserName = z.infer<typeof userNamesSchema>;
+export type Invitation = z.infer<typeof invitationSchema>;
