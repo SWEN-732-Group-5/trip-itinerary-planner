@@ -68,6 +68,51 @@ export const UserTrips = () => {
     }
   }
 
+  const createTripForm = (
+    <form id="create-trip-form" onSubmit={handleCreateTrip} className="space-y-3">
+      <Input
+        placeholder="Trip name"
+        value={tripName}
+        onChange={(e) => setTripName(e.target.value)}
+        autoComplete="off"
+        required
+      />
+      <Input
+        type="datetime-local"
+        value={startTime}
+        onChange={(e) => setStartTime(e.target.value)}
+        required
+      />
+      <Input
+        type="datetime-local"
+        value={endTime}
+        onChange={(e) => setEndTime(e.target.value)}
+        required
+      />
+    </form>
+  )
+
+  const createTripDialogContent = (
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Create Trip</DialogTitle>
+        <DialogDescription>
+          Add the trip basics now. You can add events from the trip details page.
+        </DialogDescription>
+      </DialogHeader>
+      {createTripForm}
+      <DialogFooter>
+        <Button
+          type="submit"
+          form="create-trip-form"
+          disabled={isCreatingTrip}
+        >
+          {isCreatingTrip ? "Creating..." : "Create Trip"}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  )
+
   if (isLoading) {
     return (
       <div className="p-6 space-y-4">
@@ -95,61 +140,22 @@ export const UserTrips = () => {
 
   if (!trips || trips.length === 0) {
     return (
-      <>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <div className="p-6">
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12 text-center gap-3">
-                <MapPin className="h-10 w-10 text-muted-foreground" />
-                <p className="text-muted-foreground text-sm">
-                  You have no trips yet. Start planning your first trip!
-                </p>
-                <Button onClick={() => setIsCreateDialogOpen(true)}>
-                  Create Trip
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create Trip</DialogTitle>
-              <DialogDescription>
-                Add the trip basics now. You can add events from the trip details page.
-              </DialogDescription>
-            </DialogHeader>
-            <form id="create-trip-form" onSubmit={handleCreateTrip} className="space-y-3">
-              <Input
-                placeholder="Trip name"
-                value={tripName}
-                onChange={(e) => setTripName(e.target.value)}
-                autoComplete="off"
-                required
-              />
-              <Input
-                type="datetime-local"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                required
-              />
-              <Input
-                type="datetime-local"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                required
-              />
-            </form>
-            <DialogFooter>
-              <Button
-                type="submit"
-                form="create-trip-form"
-                disabled={isCreatingTrip}
-              >
-                {isCreatingTrip ? "Creating..." : "Create Trip"}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <div className="p-6">
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center gap-3">
+              <MapPin className="h-10 w-10 text-muted-foreground" />
+              <p className="text-muted-foreground text-sm">
+                You have no trips yet. Start planning your first trip!
+              </p>
+              <Button onClick={() => setIsCreateDialogOpen(true)}>
+                Create Trip
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </>
+            </CardContent>
+          </Card>
+        </div>
+        {createTripDialogContent}
+      </Dialog>
     )
   }
 
@@ -192,44 +198,7 @@ export const UserTrips = () => {
           ))}
         </ul>
       </div>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Create Trip</DialogTitle>
-          <DialogDescription>
-            Add the trip basics now. You can add events from the trip details page.
-          </DialogDescription>
-        </DialogHeader>
-        <form id="create-trip-form" onSubmit={handleCreateTrip} className="space-y-3">
-          <Input
-            placeholder="Trip name"
-            value={tripName}
-            onChange={(e) => setTripName(e.target.value)}
-            autoComplete="off"
-            required
-          />
-          <Input
-            type="datetime-local"
-            value={startTime}
-            onChange={(e) => setStartTime(e.target.value)}
-            required
-          />
-          <Input
-            type="datetime-local"
-            value={endTime}
-            onChange={(e) => setEndTime(e.target.value)}
-            required
-          />
-        </form>
-        <DialogFooter>
-          <Button
-            type="submit"
-            form="create-trip-form"
-            disabled={isCreatingTrip}
-          >
-            {isCreatingTrip ? "Creating..." : "Create Trip"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+      {createTripDialogContent}
     </Dialog>
   )
 }
