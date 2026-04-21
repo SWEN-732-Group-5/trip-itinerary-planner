@@ -1,16 +1,9 @@
 import { Button } from '@/components/ui/button';
 import { UserTrips } from '@/components/user-trips';
 import { LoggedIn, LoggedOut } from '@/lib/auth/authSession';
-import { Link, useNavigate } from 'react-router';
+import { Link } from 'react-router';
 
 export default function Home() {
-	const navigate = useNavigate();
-	const navigateToTrip = (formData: FormData) => {
-		const tripId = formData.get('id');
-		if (!tripId) return;
-		navigate(`/trips/${tripId}`);
-	};
-
 	return (
 		<div className="p-6">
 			<h1 className="text-2xl font-bold">Welcome to Trip Itinerary Planner</h1>
@@ -26,8 +19,7 @@ export default function Home() {
 			</LoggedOut>
 			<LoggedIn>
 				<UserTrips />
-				<div className="mt-4 flex items-center gap-2">
-				</div>
+				<div className="mt-4 flex items-center gap-2"></div>
 			</LoggedIn>
 		</div>
 	);

@@ -1,25 +1,28 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import z from 'zod';
-import { useAuthFetch, get } from './fetch';
-import { eventTypeEnum, tripSchema, tripSummarySchema, type Trip } from './model';
-
+import { get, useAuthFetch } from './fetch';
+import {
+	eventTypeEnum,
+	tripSchema,
+	tripSummarySchema,
+	type Trip,
+} from './model';
 
 export function useTrips() {
 	const { get } = useAuthFetch();
 	return useQuery({
-		queryKey: ["trips"],
+		queryKey: ['trips'],
 		queryFn: async () => {
-			const response = await get("/api/user/trips");
+			const response = await get('/api/user/trips');
 			if (!response.ok) {
 				throw new Error(`Error fetching trips: ${response.statusText}`);
 			}
 			const data = await response.json();
-			console.log("Fetched trips data:", data);
+			console.log('Fetched trips data:', data);
 			return z.array(tripSchema).parse(data.trips);
 		},
 	});
 }
-
 
 export function useTrip(tripId?: string) {
 	const { get } = useAuthFetch();
@@ -43,9 +46,7 @@ export function useTripSummary(tripId?: string) {
 		queryKey: ['trip', tripId],
 		queryFn: async () => {
 			if (!tripId) throw new Error(`No trip to retrieve!`);
-			const response = await get(
-				`/api/trips/${tripId}/summary`,
-			);
+			const response = await get(`/api/trips/${tripId}/summary`);
 			if (!response.ok) {
 				throw new Error(`Error fetching trip details: ${response.statusText}`);
 			}
@@ -107,11 +108,10 @@ export const eventInput = z.object({
 			])
 			.optional(),
 	), // [latitude, longitude]
-	start_time: z.string().datetime(),
-	end_time: z.string().datetime(),
+	start_time: z.iso.datetime(),
+	end_time: z.iso.datetime(),
 	image_urls: z.array(z.string()).default([]),
 });
-
 
 export type CreateTripEventInput = z.infer<typeof eventInput>;
 export function useCreateTripEvent({ trip_id }: { trip_id?: string }) {
@@ -152,9 +152,12 @@ export function useMutateTripEvent({ trip_id }: { trip_id?: string }) {
 			if (!trip_id || !data.event_id) {
 				throw new Error('Trip ID is required to update an event');
 			}
-			const response = await put(`/api/trips/${trip_id}/event/${data.event_id}`, {
-				body: JSON.stringify(data),
-			});
+			const response = await put(
+				`/api/trips/${trip_id}/event/${data.event_id}`,
+				{
+					body: JSON.stringify(data),
+				},
+			);
 			if (!response.ok) {
 				throw new Error(`Error updating trip event: ${response.statusText}`);
 			}
@@ -200,13 +203,13 @@ export function useUploadFile() {
 		const formData = new FormData();
 		formData.append('file', file);
 
-		// Note: When sending FormData, most fetch wrappers (like useAuthFetch) 
-		// should NOT have a 'Content-Type' header set manually, 
+		// Note: When sending FormData, most fetch wrappers (like useAuthFetch)
+		// should NOT have a 'Content-Type' header set manually,
 		// as the browser needs to set the boundary.
 		const response = await postFormData('/api/file/upload', formData);
 
 		if (!response.ok) {
-			throw new Error("Failed to upload image to MinIO");
+			throw new Error('Failed to upload image to MinIO');
 		}
 
 		const data = await response.json();
