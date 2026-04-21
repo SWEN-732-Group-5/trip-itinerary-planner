@@ -4,12 +4,24 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import ValidationError
 
 from src.db import get_db_client
-from src.db_types import (BookingSummaryItem, EventLocation, EventType, Trip,
-                          TripEvent, TripInvitation)
-from src.request_types import (CreateTripInvitationRequest, CreateTripRequest,
-                               EventRequest, UpdateEventLocationRequest,
-                               UpdateEventRequest, UpdateOrganizersRequest,
-                               UpdateTripRequest)
+from src.db_types import (
+    BookingSummaryItem,
+    EventLocation,
+    EventType,
+    Trip,
+    TripEvent,
+    TripInvitation,
+    User,
+)
+from src.request_types import (
+    CreateTripInvitationRequest,
+    CreateTripRequest,
+    EventRequest,
+    UpdateEventLocationRequest,
+    UpdateEventRequest,
+    UpdateOrganizersRequest,
+    UpdateTripRequest,
+)
 from src.routes.auth import authenticated_user
 
 trip_router = APIRouter(prefix="/api/trips", tags=["trips"])
@@ -60,7 +72,6 @@ async def get_trip_summary(trip_id: str):
         raise HTTPException(status_code=404, detail=f"Trip {trip_id} not found")
     return {
         "trip_name": trip["trip_name"],
-        "trip_description": trip["trip_description"],
         "start_time": trip["start_time"],
         "end_time": trip["end_time"],
     }
@@ -183,7 +194,9 @@ async def create_event(
     trip_dict = await db.trips.find_one({"trip_id": trip_id})
 
     if not trip_dict:
-        raise HTTPException(status_code=404, detail=f"Could not find trip {trip_id} to add an event to")
+        raise HTTPException(
+            status_code=404, detail=f"Could not find trip {trip_id} to add an event to"
+        )
     if user["user_id"] not in trip_dict["organizers"]:
         raise HTTPException(status_code=403, detail="Only organizers can add events")
 
@@ -214,9 +227,8 @@ async def create_event(
 
     if result.modified_count < 1:
         raise HTTPException(
-        status_code=500, 
-        detail=f"Found trip {trip_id} but failed to update it"
-    )
+            status_code=500, detail=f"Found trip {trip_id} but failed to update it"
+        )
 
     updated_trip = await db.trips.find_one({"trip_id": trip_id})
     return Trip.model_validate(updated_trip)
@@ -233,7 +245,10 @@ async def update_event(
     trip_dict = await db.trips.find_one({"trip_id": trip_id})
 
     if not trip_dict:
-        raise HTTPException(status_code=404, detail=f"Could not find trip {trip_id} to update an event in")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Could not find trip {trip_id} to update an event in",
+        )
     if user["user_id"] not in trip_dict["organizers"]:
         raise HTTPException(status_code=403, detail="Only organizers can edit events")
 
@@ -263,12 +278,13 @@ async def update_event(
     )
 
     if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail=f"Could not find event {event_id} in trip {trip_id}")
+        raise HTTPException(
+            status_code=404, detail=f"Could not find event {event_id} in trip {trip_id}"
+        )
 
     if result.modified_count < 1:
         raise HTTPException(
-            status_code=500, 
-            detail=f"Found trip {trip_id} but failed to update it"
+            status_code=500, detail=f"Found trip {trip_id} but failed to update it"
         )
 
     updated_trip = await db.trips.find_one({"trip_id": trip_id})
@@ -426,9 +442,7 @@ async def get_trip_invitations(trip_id: str, user: dict = Depends(authenticated_
     return invitations
 
 
-@trip_router.get(
-    "/invitation/{invitation_id}", response_model=TripInvitation, status_code=200
-)
+@trip_router.get("/invitation/{invitation_id}", status_code=200)
 async def get_trip_invitation(invitation_id: str):
     db = get_db_client().trip_itinerary_planner
     invitation = await db.trip_invitations.find_one({"invitation_id": invitation_id})
@@ -436,7 +450,33 @@ async def get_trip_invitation(invitation_id: str):
         raise HTTPException(
             status_code=404, detail=f"Could not find invitation {invitation_id}"
         )
-    return TripInvitation.model_validate(invitation)
+    invitation = TripInvitation.model_validate(invitation)
+    trip = await db.trips.find_one({"trip_id": invitation.trip_id})
+    if trip is None:
+        raise HTTPException(
+            status_code=404, detail=f"Invitation {invitation_id} not valid"
+        )
+    trip = Trip.model_validate(trip)
+    inviter = await db.users.find_one({"user_id": invitation.inviter_id})
+    if inviter is None:
+        raise HTTPException(
+            status_code=404, detail=f"Invitation {invitation_id} not valid"
+        )
+    inviter = User.model_validate(inviter)
+    if invitation.inviter_id not in trip.organizers:
+        raise HTTPException(
+            status_code=406, detail=f"Invitation {invitation_id} not valid"
+        )
+    return {
+        "trip_id": trip.trip_id,
+        "trip_name": trip.trip_name,
+        "trip_start": trip.start_time,
+        "trip_end": trip.end_time,
+        "inviter": invitation.inviter_id,
+        "inviter_name": inviter.display_name,
+        "is_organizer": invitation.is_organizer,
+        "expiry_time": invitation.expiry_time,
+    }
 
 
 @trip_router.put("/invitation/{invitation_id}/accept", status_code=200)
@@ -514,7 +554,7 @@ async def delete_trip_invitation(
 ):
     db = get_db_client().trip_itinerary_planner
     invitation = await db.trip_invitations.find_one(
-        {"_id": invitation_id, "trip_id": trip_id}
+        {"invitation_id": invitation_id, "trip_id": trip_id}
     )
     if invitation is None:
         raise HTTPException(
@@ -537,7 +577,6 @@ async def delete_trip_invitation(
             status_code=500,
             detail=f"Found invitation {invitation_id} but failed to delete it",
         )
-    return None
 
 
 @trip_router.put("/{trip_id}/leave-trip", status_code=200)

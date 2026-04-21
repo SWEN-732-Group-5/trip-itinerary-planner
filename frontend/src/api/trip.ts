@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import z from 'zod';
-import { useAuthFetch } from './fetch';
-import { eventTypeEnum, tripSchema, type Trip } from './model';
+import { useAuthFetch, get } from './fetch';
+import { eventTypeEnum, tripSchema, tripSummarySchema, type Trip } from './model';
 
 
 export function useTrips() {
@@ -34,6 +34,22 @@ export function useTrip(tripId?: string) {
 				throw new Error(`Error fetching trip details: ${response.statusText}`);
 			}
 			return tripSchema.parse(await response.json());
+		},
+	});
+}
+
+export function useTripSummary(tripId?: string) {
+	return useQuery({
+		queryKey: ['trip', tripId],
+		queryFn: async () => {
+			if (!tripId) throw new Error(`No trip to retrieve!`);
+			const response = await get(
+				`/api/trips/${tripId}/summary`,
+			);
+			if (!response.ok) {
+				throw new Error(`Error fetching trip details: ${response.statusText}`);
+			}
+			return tripSummarySchema.parse(await response.json());
 		},
 	});
 }

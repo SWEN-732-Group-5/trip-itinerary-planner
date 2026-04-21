@@ -61,6 +61,15 @@ def make_mock_collection(fake_data: list[dict]):
     collection.insert_many = AsyncMock()
     return collection
 
+def make_user_dict(user_id: str = "user1"):
+    """Create a mock user dictionary"""
+    return {
+        "_id": user_id,
+        "user_id": user_id,
+        "display_name": "Test User",
+        "phone_number": "555-1234",
+        "password_hash": "hashed_password_123",
+    }
 
 def make_trip_dict(trip_id: str = "trip1"):
     return {
@@ -224,7 +233,6 @@ def test_get_trip_summary_success():
     trip_summary = {
         "trip_id": "trip1",
         "trip_name": "Spring Break",
-        "trip_description": "A fun spring break getaway",
         "start_time": "2025-03-01T08:00:00",
         "end_time": "2025-03-07T20:00:00",
         "organizers": ["user1"],
@@ -248,7 +256,6 @@ def test_get_trip_summary_success():
             assert response.status_code == 200
             data = response.json()
             assert data["trip_name"] == "Spring Break"
-            assert data["trip_description"] == "A fun spring break getaway"
             assert data["start_time"] == "2025-03-01T08:00:00"
             assert data["end_time"] == "2025-03-07T20:00:00"
 
@@ -1637,17 +1644,25 @@ def test_get_trip_invitations_not_organizer():
 
 def test_get_trip_invitation_success():
     invitation = make_invitation_dict("invitation1", "trip1")
-
     invitations_collection = MagicMock()
     invitations_collection.find_one = AsyncMock(return_value=invitation)
 
+    user = make_user_dict("user1")
+    users_collection = MagicMock()
+    users_collection.find_one = AsyncMock(return_value=user)
+
+    trip = make_trip_dict("trip1")
+    trip["organizers"] = ["user1"]
     trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=trip)
 
     with patch("src.main.get_db_client") as mock_main_db_client_fn, patch(
         "src.routes.trip_routes.get_db_client"
     ) as mock_route_client_fn:
         mock_client = make_mock_db_client(trips_collection)
         mock_client.trip_itinerary_planner.trip_invitations = invitations_collection
+        mock_client.trip_itinerary_planner.trips = trips_collection
+        mock_client.trip_itinerary_planner.users = users_collection
         mock_main_db_client_fn.return_value = mock_client
         mock_route_client_fn.return_value = mock_client
 
@@ -1657,8 +1672,8 @@ def test_get_trip_invitation_success():
             response = client.get("/api/trips/invitation/invitation1")
             assert response.status_code == 200
             data = response.json()
-            assert data["invitation_id"] == "invitation1"
-            assert data["trip_id"] == "trip1"
+            assert data["trip_name"] == "Test Trip"
+            assert data["inviter_name"] == "Test User"
 
 
 def test_get_trip_invitation_not_found():
@@ -1684,6 +1699,85 @@ def test_get_trip_invitation_not_found():
                 "Could not find invitation invalid_invitation"
                 in response.json()["detail"]
             )
+
+
+def test_get_invitation_trip_not_found():
+    invitation = make_invitation_dict("invitation1", "trip1")
+    invitations_collection = MagicMock()
+    invitations_collection.find_one = AsyncMock(return_value=invitation)
+
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=None)
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_client.trip_itinerary_planner.trip_invitations = invitations_collection
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.get("/api/trips/invitation/invalid_invitation")
+            assert response.status_code == 404
+            assert "Invitation invalid_invitation not valid" in response.json()["detail"]
+
+
+def test_get_inviter_not_organizer():
+    invitation = make_invitation_dict("invitation1", "trip1")
+    invitations_collection = MagicMock()
+    invitations_collection.find_one = AsyncMock(return_value=invitation)
+
+    user = make_user_dict("user1")
+    users_collection = MagicMock()
+    users_collection.find_one = AsyncMock(return_value=user)
+
+    trip = make_trip_dict("trip1")
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=trip)
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_client.trip_itinerary_planner.trip_invitations = invitations_collection
+        mock_client.trip_itinerary_planner.trips = trips_collection
+        mock_client.trip_itinerary_planner.users = users_collection
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.get("/api/trips/invitation/invalid_invitation")
+            assert response.status_code == 406
+            assert "Invitation invalid_invitation not valid" in response.json()["detail"]
+
+
+def test_get_inviter_not_found():
+    invitation = make_invitation_dict("invitation1", "trip1")
+    invitations_collection = MagicMock()
+    invitations_collection.find_one = AsyncMock(return_value=invitation)
+
+    trip = make_trip_dict("trip1")
+    trips_collection = MagicMock()
+    trips_collection.find_one = AsyncMock(return_value=trip)
+
+    users_collection = MagicMock()
+    users_collection.find_one = AsyncMock(return_value=None)
+
+    with patch("src.main.get_db_client") as mock_main_db_client_fn, patch("src.routes.trip_routes.get_db_client") as mock_route_client_fn:
+        mock_client = make_mock_db_client(trips_collection)
+        mock_client.trip_itinerary_planner.trip_invitations = invitations_collection
+        mock_client.trip_itinerary_planner.trips = trips_collection
+        mock_client.trip_itinerary_planner.users = users_collection
+        mock_main_db_client_fn.return_value = mock_client
+        mock_route_client_fn.return_value = mock_client
+
+        from src.main import app
+
+        with TestClient(app) as client:
+            response = client.get("/api/trips/invitation/invalid_invitation")
+            assert response.status_code == 404
+            assert "Invitation invalid_invitation not valid" in response.json()["detail"]
 
 
 def test_accept_trip_invitation_success_as_guest():

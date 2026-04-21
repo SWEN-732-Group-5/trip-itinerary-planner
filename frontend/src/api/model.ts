@@ -71,6 +71,12 @@ export const tripSchema = z.object({
 	events: z.array(tripEventSchema),
 });
 
+export const tripSummarySchema = z.object({
+	trip_name: z.string(), 
+	start_time: z.string(), // ISO date string
+	end_time: z.string(), // ISO date string
+})
+
 export const expenseSchema = z.object({
 	trip_id: z.string(),
 	user_id: z.string(),
@@ -93,6 +99,26 @@ export const userNamesSchema = z.object({
     user_names: z.record(z.string(), z.string())
 });
 
+export const invitationSchema = z.object({
+	invitation_id: z.string(), 
+	trip_id: z.string(), 
+	inviter_id: z.string(), 
+	is_organizer: z.boolean(), 
+	limit_uses: z.number(), 
+	expiry_time: z.string() // ISO date string
+})
+
+export const invitationSummarySchema = z.object({
+	trip_id: z.string(), 
+	trip_name: z.string(), 
+	trip_start: z.string(), 
+	trip_end: z.string(), 
+	inviter: z.string(), 
+	inviter_name: z.string(), 
+	is_organizer: z.boolean(), 
+	expiry_time: z.string()
+})
+
 export type EventType = z.infer<typeof eventTypeEnum>;
 export type ExpenseType = z.infer<typeof expenseEnum>;
 export type AttachmentType = z.infer<typeof attachmentEnum>;
@@ -103,6 +129,8 @@ export type EventAttachment = z.infer<typeof eventAttachmentSchema>;
 export type EventLocation = z.infer<typeof eventLocationSchema>;
 export type TripEvent = z.infer<typeof tripEventSchema>;
 export type Trip = z.infer<typeof tripSchema>;
+export type TripSummary = z.infer<typeof tripSchema>;
 export type Expense = z.infer<typeof expenseSchema>;
 export type Comment = z.infer<typeof commentSchema>;
-export type UserName = z.infer<typeof userNameSchema>;
+export type UserName = z.infer<typeof userNamesSchema>;
+export type Invitation = z.infer<typeof invitationSchema>;
