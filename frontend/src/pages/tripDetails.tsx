@@ -52,9 +52,9 @@ function TripDetails() {
 	const { id } = useParams();
 	const { data: userData } = useSelf();
 	const { data: tripData, isLoading: tripLoading } = useTrip(id);
-	const { data: invitations, isLoading: invitationsLoading } = useTripInvitations(id);
+	const { data: invitations } = useTripInvitations(id);
 	const { mutateAsync: updateTripEvent } = useCreateTripEvent({ trip_id: id });
-	const { mutateAsync: updateInvitation } = useCreateInvitation({ tripId: id });
+	const { mutateAsync: createInvitation, isPending: invitationPending } = useCreateInvitation({ tripId: id });
 	const { mutateAsync: deleteInvitation } = useDeleteInvitation({ tripId: id });
 	const [eventOpen, setEventOpen] = useState(false);
 	const [inviteOpen, setInviteOpen] = useState(false);
@@ -105,7 +105,7 @@ function TripDetails() {
 
 	const onSubmitInvitation = async (values: z.infer<typeof createInvitationInput>) => {
 		try {
-			const invitation = await updateInvitation(values);
+			const invitation = await createInvitation(values);
 			setDisplayInviteLink(invitationLink(invitation.invitation_id));
 			eventForm.reset();
 		} catch (err: any) {
@@ -401,7 +401,12 @@ function TripDetails() {
 														</Tooltip>
 													</div>
 												:
-													<Button type="submit" form="invitation-create-form">Create</Button>
+													<Button 
+														type="submit" form="invitation-create-form"
+														disabled={invitationPending}
+													>
+														{invitationPending ? "Creating..." : "Create"}
+													</Button>
 												}
 												
 											</DialogFooter>
