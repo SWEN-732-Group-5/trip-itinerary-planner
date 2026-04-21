@@ -5,7 +5,7 @@
 if [[ -z "$DATABASE_URL" ]]; then
   if ! pnpm run db:status 2>/dev/null | grep -q "trip-itinerary-planner-mongo"; then
     echo "Starting the database container..."
-    pnpm run db:up -f docker-compose.yml
+    pnpm run db:up
   fi
 else
   echo "DATABASE_URL is set, overiding container skipping the database container..."
