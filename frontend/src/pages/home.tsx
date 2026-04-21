@@ -10,6 +10,7 @@ export default function Home() {
 		if (!tripId) return;
 		navigate(`/trips/${tripId}`);
 	};
+
 	return (
 		<div className="p-6">
 			<h1 className="text-2xl font-bold">Welcome to Trip Itinerary Planner</h1>
@@ -25,8 +26,8 @@ export default function Home() {
 			</LoggedOut>
 			<LoggedIn>
 				<UserTrips />
-
-				<LogoutButton />
+				<div className="mt-4 flex items-center gap-2">
+				</div>
 			</LoggedIn>
 		</div>
 	);
