@@ -1,6 +1,6 @@
 import * as z from 'zod';
 
-export const datetime = z.string().datetime();
+export const datetime = z.iso.datetime();
 
 export const userSchema = z.object({
 	user_id: z.string(),
@@ -72,10 +72,10 @@ export const tripSchema = z.object({
 });
 
 export const tripSummarySchema = z.object({
-	trip_name: z.string(), 
+	trip_name: z.string(),
 	start_time: z.string(), // ISO date string
 	end_time: z.string(), // ISO date string
-})
+});
 
 export const expenseSchema = z.object({
 	trip_id: z.string(),
@@ -96,28 +96,28 @@ export const commentSchema = z.object({
 });
 
 export const userNamesSchema = z.object({
-    user_names: z.record(z.string(), z.string())
+	user_names: z.record(z.string(), z.string()),
 });
 
 export const invitationSchema = z.object({
-	invitation_id: z.string(), 
-	trip_id: z.string(), 
-	inviter_id: z.string(), 
-	is_organizer: z.boolean(), 
-	limit_uses: z.number(), 
-	expiry_time: z.string() // ISO date string
-})
+	invitation_id: z.string(),
+	trip_id: z.string(),
+	inviter_id: z.string(),
+	is_organizer: z.boolean(),
+	limit_uses: z.number(),
+	expiry_time: z.string(), // ISO date string
+});
 
 export const invitationSummarySchema = z.object({
-	trip_id: z.string(), 
-	trip_name: z.string(), 
-	trip_start: z.string(), 
-	trip_end: z.string(), 
-	inviter: z.string(), 
-	inviter_name: z.string(), 
-	is_organizer: z.boolean(), 
-	expiry_time: z.string()
-})
+	trip_id: z.string(),
+	trip_name: z.string(),
+	trip_start: z.string(),
+	trip_end: z.string(),
+	inviter: z.string(),
+	inviter_name: z.string(),
+	is_organizer: z.boolean(),
+	expiry_time: z.string(),
+});
 
 export type EventType = z.infer<typeof eventTypeEnum>;
 export type ExpenseType = z.infer<typeof expenseEnum>;
