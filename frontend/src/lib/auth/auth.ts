@@ -1,5 +1,5 @@
 import { authPost, post, useAuthFetch } from '@/api/fetch';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { createContext, useContext, useMemo, useRef } from 'react';
 import z from 'zod';
 import { useAtTime } from '../utils';
@@ -169,15 +169,15 @@ export const userData = z.object({
 export const useSelf = () => {
 	const { get } = useAuthFetch();
 	return useQuery({
-		queryKey: ["self"],
+		queryKey: ['self'],
 		queryFn: async () => {
-			const response = await get("/api/user/self");
+			const response = await get('/api/user/self');
 			if (!response.ok) {
 				throw new Error(`Error fetching own account: ${response.statusText}`);
 			}
 			const data = await response.json();
-			console.log(data)
+			console.log(data);
 			return userData.parse(data);
 		},
 	});
-}
+};
