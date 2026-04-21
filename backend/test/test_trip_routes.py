@@ -1,6 +1,6 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi.testclient import TestClient
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from src.routes.auth import authenticated_user
 
 
@@ -106,7 +106,7 @@ def make_invitation_dict(invitation_id: str = "invitation1", trip_id: str = "tri
         "inviter_id": "user1",
         "is_organizer": is_organizer,
         "limit_uses": 5,
-        "expiry_time": datetime.now() + timedelta(days=30),
+        "expiry_time": datetime.now(timezone.utc) + timedelta(days=30),
     }
 
 
@@ -1234,7 +1234,7 @@ def test_create_trip_invitation_success():
             with TestClient(app) as client:
                 response = client.post(
                     "/api/trips/trip1/invite",
-                    json={"is_organizer": True, "limit_uses": 5, "expiry_time": (datetime.now() + timedelta(days=30)).isoformat()},
+                    json={"is_organizer": True, "limit_uses": 5, "expiry_time": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()},
                     headers={"session_token": "fake_token"},
                 )
                 assert response.status_code == 201
@@ -1263,7 +1263,7 @@ def test_create_trip_invitation_trip_not_found():
             with TestClient(app) as client:
                 response = client.post(
                     "/api/trips/trip1/invite",
-                    json={"is_organizer": False, "limit_uses": 5, "expiry_time": (datetime.now() + timedelta(days=30)).isoformat()},
+                    json={"is_organizer": False, "limit_uses": 5, "expiry_time": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()},
                     headers={"session_token": "fake_token"},
                 )
                 assert response.status_code == 404
@@ -1291,7 +1291,7 @@ def test_create_trip_invitation_not_organizer():
             with TestClient(app) as client:
                 response = client.post(
                     "/api/trips/trip1/invite",
-                    json={"is_organizer": False, "limit_uses": 5, "expiry_time": (datetime.now() + timedelta(days=30)).isoformat()},
+                    json={"is_organizer": False, "limit_uses": 5, "expiry_time": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()},
                     headers={"session_token": "fake_token"},
                 )
                 assert response.status_code == 403
@@ -1440,7 +1440,7 @@ def test_get_trip_invitation_not_found():
 def test_accept_trip_invitation_success_as_guest():
     invitation = make_invitation_dict("invitation1", "trip1", False)
     invitation["limit_uses"] = 5
-    invitation["expiry_time"] = datetime.now() + timedelta(days=30)
+    invitation["expiry_time"] = datetime.now(timezone.utc) + timedelta(days=30)
 
     trip = make_trip_dict("trip1")
     trip["organizers"] = ["user1"]
@@ -1480,7 +1480,7 @@ def test_accept_trip_invitation_success_as_guest():
 def test_accept_trip_invitation_success_as_organizer():
     invitation = make_invitation_dict("invitation1", "trip1", True)
     invitation["limit_uses"] = 3
-    invitation["expiry_time"] = datetime.now() + timedelta(days=30)
+    invitation["expiry_time"] = datetime.now(timezone.utc) + timedelta(days=30)
 
     trip = make_trip_dict("trip1")
     trip["organizers"] = ["user1"]
@@ -1543,7 +1543,7 @@ def test_accept_trip_invitation_not_found():
 
 def test_accept_trip_invitation_expired():
     invitation = make_invitation_dict("invitation1", "trip1", False)
-    invitation["expiry_time"] = datetime.now() - timedelta(days=1)
+    invitation["expiry_time"] = datetime.now(timezone.utc) - timedelta(days=1)
 
     invitations_collection = MagicMock()
     invitations_collection.find_one = AsyncMock(return_value=invitation)
@@ -1573,7 +1573,7 @@ def test_accept_trip_invitation_expired():
 def test_accept_trip_invitation_no_uses_left():
     invitation = make_invitation_dict("invitation1", "trip1", False)
     invitation["limit_uses"] = 0
-    invitation["expiry_time"] = datetime.now() + timedelta(days=30)
+    invitation["expiry_time"] = datetime.now(timezone.utc) + timedelta(days=30)
 
     invitations_collection = MagicMock()
     invitations_collection.find_one = AsyncMock(return_value=invitation)
@@ -1602,7 +1602,7 @@ def test_accept_trip_invitation_no_uses_left():
 
 def test_accept_trip_invitation_trip_not_found():
     invitation = make_invitation_dict("invitation1", "trip1", False)
-    invitation["expiry_time"] = datetime.now() + timedelta(days=30)
+    invitation["expiry_time"] = datetime.now(timezone.utc) + timedelta(days=30)
 
     invitations_collection = MagicMock()
     invitations_collection.find_one = AsyncMock(return_value=invitation)
@@ -1634,7 +1634,7 @@ def test_accept_trip_invitation_trip_not_found():
 
 def test_accept_trip_invitation_already_member():
     invitation = make_invitation_dict("invitation1", "trip1", False)
-    invitation["expiry_time"] = datetime.now() + timedelta(days=30)
+    invitation["expiry_time"] = datetime.now(timezone.utc) + timedelta(days=30)
 
     trip = make_trip_dict("trip1")
     trip["organizers"] = ["user1"]

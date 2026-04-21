@@ -1,6 +1,6 @@
 import * as z from 'zod';
 
-export const datetime = z.iso.datetime().pipe(z.coerce.date());
+export const datetime = z.string().datetime();
 
 export const userSchema = z.object({
 	user_id: z.string(),
@@ -38,7 +38,7 @@ export const eventAttachmentSchema = z.object({
 	attachment_id: z.string(),
 	event_id: z.string(),
 	title: z.string(),
-	description: z.string().optional(),
+	description: z.string().optional().nullable(),
 	uri: z.string(),
 });
 
@@ -52,9 +52,9 @@ export const tripEventSchema = z.object({
 	event_id: z.string(),
 	event_name: z.string(),
 	event_type: eventTypeEnum,
-	event_description: z.string().optional(),
+	event_description: z.string().optional().nullable(),
 	location: eventLocationSchema,
-	end_location: eventLocationSchema.optional(),
+	end_location: eventLocationSchema.optional().nullable(),
 	start_time: datetime,
 	end_time: datetime,
 	attachments: z.array(eventAttachmentSchema),
@@ -63,10 +63,10 @@ export const tripEventSchema = z.object({
 export const tripSchema = z.object({
 	trip_id: z.string(),
 	trip_name: z.string(),
-	start_time: z.string(), // ISO date string
-	end_time: z.string(), // ISO date string
-	organizers: z.array(userSchema),
-	guests: z.array(userSchema),
+	start_time: z.string(),
+	end_time: z.string(),
+	organizers: z.array(z.string()),
+	guests: z.array(z.string()),
 	events: z.array(tripEventSchema),
 });
 

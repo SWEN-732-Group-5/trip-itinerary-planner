@@ -1,7 +1,7 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi.testclient import TestClient
 from fastapi import HTTPException
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import bcrypt
 import pytest
 
@@ -25,7 +25,7 @@ def make_session_dict(user_id: str = "user1", session_token: str = "test_token_1
         "_id": "session_id_123",
         "user_id": user_id,
         "session_token": session_token,
-        "expiry_time": datetime.now() + timedelta(minutes=30),
+        "expiry_time": datetime.now(timezone.utc) + timedelta(minutes=30),
     }
 
 
@@ -35,7 +35,7 @@ def make_expired_session_dict(user_id: str = "user1", session_token: str = "expi
         "_id": "expired_session_id",
         "user_id": user_id,
         "session_token": session_token,
-        "expiry_time": datetime.now() - timedelta(minutes=5),
+        "expiry_time": datetime.now(timezone.utc) - timedelta(minutes=5),
     }
 
 

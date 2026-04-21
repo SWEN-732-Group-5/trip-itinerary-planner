@@ -3,8 +3,27 @@ import z from 'zod';
 import { useAuthFetch } from './fetch';
 import { eventTypeEnum, tripSchema, type Trip } from './model';
 
+
+export function useTrips() {
+	const { get } = useAuthFetch();
+	return useQuery({
+		queryKey: ["trips"],
+		queryFn: async () => {
+			const response = await get("/api/user/trips");
+			if (!response.ok) {
+				throw new Error(`Error fetching trips: ${response.statusText}`);
+			}
+			const data = await response.json();
+			console.log("Fetched trips data:", data);
+			return z.array(tripSchema).parse(data.trips);
+		},
+	});
+}
+
+
 export function useTrip(tripId?: string) {
 	const { get } = useAuthFetch();
+
 	return useQuery({
 		queryKey: ['trip', tripId],
 		queryFn: async () => {
@@ -51,12 +70,14 @@ export const createEventInput = z.object({
 	location_name: z.string(),
 	location_type: eventTypeEnum,
 	location_coords: z.tuple([
-		z.string().transform(z.coerce.number),
-		z.string().transform(z.coerce.number),
+		z.number().min(-90).max(90), // latitude
+		z.number().min(-180).max(180), // longitude
 	]), // [latitude, longitude]
-	start_time: z.date(),
-	end_time: z.date(),
+	start_time: z.string().datetime(),
+	end_time: z.string().datetime(),
 });
+
+
 export type CreateTripEventInput = z.infer<typeof createEventInput>;
 export function useCreateTripEvent({ trip_id }: { trip_id?: string }) {
 	const { post } = useAuthFetch();

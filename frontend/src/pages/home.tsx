@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { UserTrips } from '@/components/user-trips';
 import { LoggedIn, LoggedOut, LogoutButton } from '@/lib/auth/authSession';
 import { Link, useNavigate } from 'react-router';
 
@@ -24,17 +24,8 @@ export default function Home() {
 				</div>
 			</LoggedOut>
 			<LoggedIn>
-				<div className="p-4 w-fit">
-					<form action={navigateToTrip} className="flex flex-row gap-2">
-						<Input placeholder="Trip ID" name="id" type="text" />
-						<Button
-							type="submit"
-							className="peer-placeholder-shown:opacity-50 p-2 bg-blue-500 text-white rounded-md  peer-[:not(:placeholder-shown)]:hover:bg-blue-400 peer-[:not(:placeholder-shown)]:active:bg-blue-600"
-						>
-							Go to trip
-						</Button>
-					</form>
-				</div>
+				<UserTrips />
+
 				<LogoutButton />
 			</LoggedIn>
 		</div>
