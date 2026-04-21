@@ -18,6 +18,7 @@ Navigate to each subpackage directory for more details.
 Run the following options using `pnpm run <option>`
 
 options:
+- `prod` - Run fully containerized application.
 - `dev` - Run development environment for all subpackages
 - `dev:backend` - Run backend development environment
 - `dev:frontend` - Run frontend development environment
@@ -25,13 +26,16 @@ options:
 
 ## Dependencies
 
-### pnpm
+Required installation:
+1. [node.js](https://nodejs.org/en/download)
+2. [docker](https://docs.docker.com/engine/install/)
+3. [uv](https://docs.astral.sh/uv/getting-started/installation/)(optional if running in container)
 
+### pnpm
 This project uses [pnpm](https://pnpm.io/) as the package manager.
 
 **Installation:**
-
-Install node.js and run
+run
 ```bash
 npm install -g pnpm
 ```
