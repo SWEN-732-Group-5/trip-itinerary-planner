@@ -1,6 +1,8 @@
 services:
   frontend:
-    image: ghcr.io/swen-732-group-5/trip-itinerary-planner/frontend:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
     ports:
       - "4173:80"
     restart: unless-stopped
