@@ -7,7 +7,8 @@
 		"dev": "concurrently \"pnpm --filter backend dev:db\" \"pnpm --filter backend dev:uv\" \"pnpm dev:frontend\"",
 		"dev:backend": "pnpm --filter backend dev",
 		"dev:frontend": "pnpm --filter frontend dev",
-		"test": "pnpm -r test"
+		"test": "pnpm -r test",
+		"prod": "docker compose -f docker-compose.prod.yml up --build"
 	},
 	"keywords": [],
 	"author": "",
@@ -15,5 +16,8 @@
 	"packageManager": "pnpm@10.33.0",
 	"devDependencies": {
 		"concurrently": "^9.2.1"
+	},
+	"overrides": {
+		"zod": "^4.3.6"
 	}
 }

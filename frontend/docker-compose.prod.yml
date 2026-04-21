@@ -1,0 +1,9 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: trip-itinerary-planner-frontend
+    ports:
+      - "4173:80"
+    restart: unless-stopped

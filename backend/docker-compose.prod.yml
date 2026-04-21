@@ -1,4 +1,25 @@
 services:
+  backend:
+    image: ghcr.io/astral-sh/uv:python3.14-bookworm-slim
+    container_name: trip-itinerary-planner-backend
+    env_file:
+      - .env
+    environment:
+      - MONGO_HOST=mongodb
+      - MINIO_HOST=minio
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: [ "uv", "run", "src/main.py" ]
+    ports:
+      - "8000:8000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+
   mongodb:
     image: mongo:latest
     container_name: trip-itinerary-planner-mongo

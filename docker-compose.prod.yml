@@ -1,0 +1,7 @@
+include:
+  - ./frontend/docker-compose.prod.yml
+  - ./backend/docker-compose.prod.yml
+
+volumes:
+  mongodb_data:
+  minio_data:
