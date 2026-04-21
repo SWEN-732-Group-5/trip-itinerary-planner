@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { AlertCircle, MapPin, CalendarDays } from "lucide-react"
 import { toast } from "sonner"
+import { Link } from "react-router"
 
 export const UserTrips = () => {
   const { data: trips, isLoading, error, isError } = useTrips()
@@ -175,7 +176,7 @@ export const UserTrips = () => {
         <ul className="space-y-3">
           {trips.map((trip) => (
             <li key={trip.trip_id}>
-              <a href={`/trips/${trip.trip_id}`} className="block group">
+              <Link to={`/trips/${trip.trip_id}`} className="block group">
                 <Card className="transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer">
                   <CardContent className="flex items-center justify-between py-4 px-5">
                     <div className="space-y-1">
@@ -193,7 +194,7 @@ export const UserTrips = () => {
                     <MapPin className="h-4 w-4 text-muted-foreground group-hover:text-accent-foreground transition-colors shrink-0" />
                   </CardContent>
                 </Card>
-              </a>
+              </Link>
             </li>
           ))}
         </ul>

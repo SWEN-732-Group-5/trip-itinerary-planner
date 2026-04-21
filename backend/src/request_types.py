@@ -18,7 +18,7 @@ class UpdateTripRequest(BaseModel):
 class UpdateOrganizersRequest(BaseModel):
     is_organizer: dict[str, bool]
 
-class CreateEventRequest(BaseModel):
+class EventRequest(BaseModel):
     event_name: str
     event_type: EventType
     event_description: Optional[str]
@@ -27,6 +27,7 @@ class CreateEventRequest(BaseModel):
     location_coords: Optional[list[float]] = None
     start_time: datetime
     end_time: datetime
+    image_urls: list[str]
 
 class UpdateEventRequest(BaseModel):
     event_name: str

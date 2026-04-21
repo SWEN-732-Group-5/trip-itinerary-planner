@@ -8,6 +8,7 @@ import Login from './pages/login';
 import Signup from './pages/signup';
 import TripDetails from './pages/tripDetails';
 import Account from './pages/account';
+import ViewInvitation from './pages/viewInvitation';
 
 // Create a react query client
 const queryClient = new QueryClient();
@@ -21,8 +22,9 @@ function App() {
 						<Route path="/" element={<Home />} />
 						<Route path="/trips/:id" element={<TripDetails />} />
 						<Route path="/account" element={<Account />} />
-						<Route path="/login" element={<Login />} />
+						<Route path="/login/:redirect?" element={<Login />} />
 						<Route path="/signup" element={<Signup />} />
+						<Route path="/accept-invitation/:id" element={<ViewInvitation />} />
 					</Routes>
 				</Layout>
 			</SessionProvider>

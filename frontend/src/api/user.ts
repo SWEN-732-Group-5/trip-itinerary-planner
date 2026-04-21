@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { useAuthFetch } from './fetch';
+import { userNamesSchema } from "./model";
 
 const selfSchema = z.object({
 	display_name: z.string(),
@@ -47,5 +48,24 @@ export function useUpdateSelf() {
 		onSuccess: async () => {
 			await client.invalidateQueries({ queryKey: ['self-profile'] });
 		},
+
+	});
+}
+
+export function useUserNames(users: string[], enabled: boolean = true) {
+	const { get } = useAuthFetch();
+
+	return useQuery({
+		queryKey: ['user', users],
+		queryFn: async () => {
+			const response = await get(
+				`/api/user/names?ids=${users.join(',')}`,
+			);
+			if (!response.ok) {
+				throw new Error(`Error fetching user names: ${response.statusText}`);
+			}
+			return userNamesSchema.parse(await response.json());
+		},
+		enabled: enabled && users.length > 0,
 	});
 }
